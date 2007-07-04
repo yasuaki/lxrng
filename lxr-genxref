@@ -1,0 +1,301 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+use LXRng ROOT => $FindBin::Bin;
+use LXRng::Context;
+use LXRng::Lang qw(C);
+use LXRng::Index;
+use LXRng::Parse::Simple;
+
+use Carp;
+use Data::Dumper;
+use IO::Handle;
+use Fcntl;
+
+$SIG{'INT'}  = sub { die "SIGINT: please wait, flushing caches...\n"; };
+$SIG{'QUIT'} = sub { die "SIGQUIT: please wait, flushing caches...\n"; };
+$SIG{'TERM'} = sub { die "SIGTERM: please wait, flushing caches...\n"; };
+
+autoflush STDOUT 1;
+autoflush STDERR 1;
+
+my $cols = 0;
+sub progress_mark {
+    my ($mark) = @_;
+
+    if ($cols > 79) {
+	print("\n");
+	$cols = 0;
+    }
+    print(STDERR $mark);
+    $cols++;
+}
+
+sub progress_info {
+    my ($msg) = @_;
+    print(STDERR "\n") if $cols > 0;
+    print(STDERR "$msg\n");
+    $cols = 0;
+}
+
+sub make_add_ident {
+    my ($index, $fileid) = @_;
+
+    my $last_func;
+    my %identcache;
+
+    my $add_ident;
+    $add_ident = sub {
+	my ($symbol, $info) = @_;
+	
+	if ($$info{'kind'} eq 'f') {
+	    $last_func = $symbol;
+	}
+	if ($$info{'kind'} eq 'l') {
+	    $$info{'context'} = $identcache{$last_func};
+	}
+	if (exists $$info{'class'}) {
+	    $$info{'context'} = $identcache{$$info{'class'}};
+	}
+	if (exists $$info{'struct'}) {
+	    $$info{'context'} = $identcache{$$info{'struct'}};
+	}
+
+	$identcache{$symbol} = 
+	    $index->add_ident($fileid, $$info{'line'},
+			      $symbol, $$info{'kind'},
+			      $$info{'context'});
+    
+	if ($$info{'kind'} eq 'f' and exists $$info{'signature'}) {
+	    # This needs to be more robust.  Perhaps ctags ought to do it.
+	    
+	    foreach my $v (split(/,/, $$info{'signature'})) {
+		next if 
+		    $v !~ /([a-zA-Z_0-9]+)[^a-zA-Z_0-9]*$/ or
+		    $1 eq 'void';
+
+		$add_ident->($1, {'kind' => 'l', 'line' => $$info{'line'}});
+	    }
+	}
+    }
+}
+
+sub index_file {
+    my ($context, $index, $tree, $rel, $file, $fileid) = @_;
+
+    my $lang = LXRng::Lang->new($file);
+
+    return unless $lang->doindex();
+    unless ($index->to_index($fileid)) {
+	progress_mark("*");
+	return;
+    }
+
+    my $add_ident = make_add_ident($index, $fileid);
+   
+    progress_info("indexing ".$file->name."[".$file->revision."] ".
+		  $file->size." bytes ($lang)...");
+
+    my @extra_flags = ('-IEXPORT_SYMBOL+', '-I__initcall+');
+
+    my $path = $file->phys_path;
+
+    my $ctags;
+    my $pid = open($ctags, '-|');
+    die $! unless defined $pid;
+    
+    if ($pid == 0) {
+	exec('ctags-exuberant',
+	     @extra_flags,
+	     '--fields=+aifmknsSz', '--sort=no',
+	     '--excmd=number', '-f', '-',
+	     '--language-force='.$lang->ctagslangname,
+	     $lang->ctagsopts,
+	     $path);
+
+	# Still here?
+	warn $!;
+	kill(9, $$);
+    }
+
+    LXRng::Index::transaction {
+	while (<$ctags>) {
+	    chomp;
+	    my ($symbol, $file, $excmd, @info) = split(/\t/);
+	    my %info = map { split(/:/, $_, 2) } @info;
+	    
+	    $add_ident->($symbol, \%info);
+	}
+    } $index;
+
+    $path = undef;
+}
+
+sub reference_file {
+    my ($context, $index, $tree, $rel, $file, $fileid) = @_;
+
+    my $lang = LXRng::Lang->new($file);
+
+    return unless $lang->doindex();
+
+    unless ($index->to_reference($fileid)) {
+	progress_mark(".");
+	return;
+    }
+
+#    sysopen(my $handle, $file->phys_path, O_RDONLY) or die($!);
+#    my $parse = new LXRng::Parse::Simple($handle, 8, @{$lang->parsespec});
+    my $parse = new LXRng::Parse::Simple($file->handle, 8, @{$lang->parsespec});
+
+    progress_info("referencing ".$file->name.", ".
+		  $file->size." bytes ($lang)...");
+
+    my $res = $lang->reserved();
+
+    my $re = qr(
+		(?m:^|[^a-zA-Z0-9_])		# Non-symbol chars.
+		(_*[a-zA-Z][a-zA-Z0-9_]*)	# The symbol.
+		\b
+		)x;
+
+    my $line = 1;
+    while (1) {
+	my ($btype, $frag) = $parse->nextfrag;
+    
+	last unless defined $frag;
+	$btype ||= 'code';
+	if ($btype eq 'code') {
+	    
+	    while ($frag =~ /\G.*?(?:(\n)|$re)/gc) {
+		$line++ && next if defined $1;
+
+		my $id = $2;
+
+		next if $$res{$id};
+
+		$index->add_usage($fileid, $line, $id);
+	    }
+	}
+	else {
+	    if ($btype eq 'include') {
+		my @paths = 
+		    $lang->resolve_include($context, $file, $frag);
+
+		foreach my $path (@paths) {
+		    $index->add_include($fileid, $path);
+		}
+	    }
+	    $line += $frag =~ tr/\n/\n/;
+	}
+    }
+}
+
+sub hash_file {
+    my ($context, $index, $hash, $tree, $rel, $file, $fileid) = @_;
+
+    my $docid;
+    if ($index->to_hash($fileid)) {
+	my $handle = $file->handle();
+	progress_info("hashing ".$file->name."[".$file->revision."] ".
+		      $file->size." bytes...");
+	my $doc = $hash->new_document($file->name);
+	while (<$handle>) {
+	    my $pos = 0;
+	    # Latin-1 word characters.
+	    foreach my $term (/([0-9a-zA-Z\300-\326\330-\366\370-\377]+)/g) {
+		if ($term =~ /^[A-Z][^A-Z]*$/) {
+		    $term = 'R'.lc($term);
+		}
+		else {
+		    $term = lc($term);
+		}
+		next if length($term) > 128;
+		$doc->add_posting($term, $.*100 + $pos++);
+	    }
+	}
+	$docid = $hash->add_document($doc, $index->release_id($tree, $rel));
+	$index->add_hashed_document($fileid, $docid);
+    }
+    else {
+	$docid = $index->get_hashed_document($fileid);
+	if ($hash->add_release($docid, $index->release_id($tree, $rel))) {
+	    progress_mark("+");
+	}
+	else {
+	    progress_mark("-");
+	}
+    }
+    # for all releases this fileid belongs to (that are not is_indexed)
+    # add_release to $docid.
+}
+
+sub do_index {
+    my ($context, $index, $hash, $tree, $rel, $iter) = @_;
+
+    my $node;
+    while (defined($node = $iter->next)) {
+	next if $node->name =~ /\.o$/;
+	my $fileid = $index->rfile_id($node, 1);
+	$index->add_filerelease($tree, $rel, $fileid);
+	index_file($context, $index, $tree, $rel, $node, $fileid);
+	hash_file($context, $index, $hash, $tree, $rel, $node, $fileid);
+    }
+}
+
+sub do_reference {
+    my ($context, $index, $hash, $tree, $rel, $iter) = @_;
+
+    my $node;
+    while (defined($node = $iter->next)) {
+	next if $node->name =~ /\.o$/;
+	my $fileid = $index->rfile_id($node, 1);
+	LXRng::Index::transaction {
+	    reference_file($context, $index, $tree, $rel, $node, $fileid);
+	} $index;
+    }
+}
+
+my $tree = shift(@ARGV);
+my @versions = @ARGV;
+
+my $context = LXRng::Context->new('tree' => $tree);
+
+my $index   = $context->config->{'index'};
+my $hash    = $context->config->{'search'};
+my $rep     = $context->config->{'repository'};
+
+sub do_genxref {
+    my ($tree, $version) = @_;
+
+    print("\nindexing release $version...\n");
+    my $root    = $rep->node('/', $version) or die "bad root";
+    $context->release($version);
+    
+    LXRng::Index::transaction {
+	do_index($context, $index, $hash, $tree, $version, $rep->iterator($version));
+	do_reference($context, $index, $hash, $tree, $version, $rep->iterator($version));
+    } $index;
+
+    $hash->flush();
+    # Mark release as is_indexed
+    progress_info("release $version done");
+}
+
+if (@versions) {
+    foreach my $version (@versions) {
+	do_genxref($tree, $version);
+    }
+}
+else {
+    # Run pass over all un-indexed releases, record all files.
+
+    foreach my $version (reverse @{$context->all_releases}) {
+	next if $index->_get_release($index->tree_id($tree), $version);
+	system($0, $tree, $version);
+    }
+}

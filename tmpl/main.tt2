@@ -1,0 +1,9 @@
+[% INCLUDE header.tt2 %]
+<div id="content">
+[% IF is_dir %]
+[% INCLUDE content_dir.tt2 context = context, node = node %]
+[% ELSE %]
+[% file_content %]
+[% END %]
+</div>
+[% INCLUDE footer.tt2 %]

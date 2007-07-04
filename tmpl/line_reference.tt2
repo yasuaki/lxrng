@@ -1,0 +1,4 @@
+<a href="[% file %]#L[% line %]" [% navtarget %]
+onclick="return load_file('[% context.tree %]', '[% file %][% context.args_url %]', '[% context.release %]', [% line %]);">
+ [% file %], line [% line %]
+</a>

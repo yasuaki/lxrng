@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <base href="[% base_url %]" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
+    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng" />
+
+    <script type="text/javascript">
+      var use_ajax_navigation=[% IF is_ajax %]1[% ELSE %]0[% END %];
+      var use_popup_navigation=[% IF is_popup %]1[% ELSE %]0[% END %];
+    </script>
+
+    <title>LXR Lookup</title>
+  </head>
+
+  <body class="popup" onload="window.focus();">
+    <div id="search_results" class="search_results" style="display: block;">
+      [% search_res %]
+    </div>
+  </body>
+</html>
+
+
+
+

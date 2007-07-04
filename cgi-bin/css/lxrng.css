@@ -1,0 +1,278 @@
+/* http://devnull.tagsoup.com/fixed/horizontal.html */
+
+span.lxr_l {
+	text-transform: uppercase;
+	margin-left: 5px;
+	font-weight: normal;
+}
+
+span.lxr_x {
+	text-transform: uppercase;
+	font-weight: normal;
+}
+
+span.lxr_r {
+	text-transform: uppercase;
+	font-weight: normal;
+	padding-right: 5px;
+	border-right: solid;
+	border-width: 1px;
+}
+
+span.lxr_title {
+	float: left;
+}
+
+span.lxr_menu {
+/*	float: right; */
+}
+div.lxr_menu {
+	float: right;
+}
+
+span.lxr_search {
+	font-weight: normal;
+	margin-left: 5px;
+	padding-left: 5px;
+	margin-right: 5px;
+/*	border-left: solid;
+	border-width: 1px; */
+}
+span.lxr_prefs {
+	font-weight: normal;
+	margin-left: 5px;
+	padding-left: 5px;
+	margin-right: 5px;
+	border-left: solid;
+	border-width: 1px;
+}
+
+span.lxr_version {
+	font-weight: normal;
+	padding-left: 5px;
+/*	border-left: solid;
+	border-width: 1px; */
+}
+
+body.full div.search_results {
+	background: #F0F0F0;
+	z-index: 3;
+	position: fixed;
+	right: 3px;
+	top: 35px;
+	width: 35%;
+	height: 70%;
+	border: solid;
+	border-width: 1px;
+	display: none;
+	overflow: auto;
+	padding: 3px;
+}
+
+body.popup div.search_results {
+	background: #F0F0F0;
+	border: solid;
+	border-width: 1px;
+	padding: 3px;
+	margin: 1px;
+}
+
+div.query_desc {
+	font-weight: bold;
+}
+
+span.close-button {
+	float: right;
+	margin-top: 3px;
+	margin-right: 3px;
+}
+
+a.line:before {
+	content: attr(id);
+}	
+
+a.line {
+	position: absolute;
+	top: auto;
+	left: 0px;
+	width: 4.5ex;
+	text-align: right;
+	background: #e0e0e0;
+
+	border: solid;
+	border-width: 1px;
+	border-color: #000000;
+	margin-left: 3px;
+	padding-right: 5px;
+}
+
+body {
+	margin-top: 3px;
+	margin-left: 3px;
+	margin-right: 3px;
+	overflow: scroll;
+}
+
+pre {
+	margin-left: 6ex;
+}
+
+div.headingtop {
+}
+
+div.headingbottom {
+	clear: both;
+}
+
+div.heading {
+	background: #F0F0F0;
+	margin-right: 0px;
+	margin-left: 0px;
+	font-weight: bold;
+	font-size: 120%;
+	border: solid;
+	border-width: 1px;
+	text-align: right;
+}
+
+div.heading img {
+	vertical-align: middle;
+}
+
+div.searchbox {
+	background: #F0F0F0;
+	border: solid;
+	margin-top: 3px;
+	border-width: 1px;
+	margin-right: 0px;
+	margin-left: 0px;
+	width: 30ex;
+	float: right;
+}
+
+
+button.print {
+	border: 0;
+	background: #F0F0F0;
+}
+
+
+table.query {
+	width: 100%;
+}
+
+table.params {
+	width: 100%;
+}
+
+table.directory {
+	width: 100%;
+}
+
+table.directory td.name {
+	width: 30ex;
+}	
+
+table.directory td.size {
+	width: 10ex;
+	text-align: right;
+	padding-right: 1ex;
+}	
+
+table.directory td.time {
+	width: 30ex;
+}	
+
+div.footerbox {
+	left: 3px;
+	right: 3px;
+	bottom: 3px;
+	border: solid;
+	border-width: 1px;
+	background: #F0F0F0;
+}
+
+div.footerfill {
+	height: 3px;
+}
+
+div.content {
+	background: white;
+}
+
+
+span.comment {
+	font-weight: bold;
+	font-style: italic;
+}
+
+span.string {
+	font-style: italic;
+	color: red;
+}
+
+div.find {
+	padding: 3px;
+}
+
+div.find div.find_input {
+	width: 100%;
+}
+
+div.find div.find_code {
+	width: 33%;
+	float: left;
+	text-align: left;
+}
+
+div.find div.find_text {
+	width: 33%;
+	float: left;
+	text-align: center;
+}
+
+div.find div.find_file {
+	width: 33%;
+	float: right;
+	text-align: right;
+}
+
+div.vars {
+	clear: both;
+	padding: 3px;
+}
+
+div.vars div.var_title {
+	clear: both;
+	width: 50%;
+	float: left;
+	text-align: left;
+}
+
+div.vars div.var_select {
+	width: 50%;
+	float: right;
+	text-align: right;
+}
+
+div.vars div.do_update {
+	clear: both;
+	width: 50%;
+	float: left;
+	text-align: left;
+}
+
+div.vars div.do_hide {
+	width: 50%;
+	float: right;
+	text-align: right;
+}
+
+div.progress {
+	font-weight: bold;
+	font-style: italic;
+}
+
+form {
+	display: inline;
+}

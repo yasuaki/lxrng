@@ -1,0 +1,53 @@
+# -*- mode: perl -*-
+# Configuration file
+#
+# 
+
+use LXRng::Index::PgBatch;
+use LXRng::Repo::Git;
+use LXRng::Search::Xapian;
+
+my $gitrepo = LXRng::Repo::Git
+    ->new('/var/lib/lxrng/repos/linux-2.6/.git',
+	  release_re => qr/^v[^-]*$/,
+	  author_timestamp => 0);
+
+my $index   = LXRng::Index::PgBatch->new(db_spec => 'dbname=lxrng;port=5432', 
+					 db_user => "", db_pass => "",
+					 # table_prefix => 'lxr'
+					 );
+my $search  = LXRng::Search::Xapian->new('/var/lib/lxrng/text-db/linux-2.6');
+
+return {
+    'linux' => {
+	'repository'  => $gitrepo,
+	'index'       => $index,
+	'search'      => $search,
+
+	'base_url'    => 'http://lxr-test.linpro.no/',
+	# Must be writable by httpd user:
+	'cache'	      => '/var/lib/lxrng/cache',
+
+	'fs_charset'  => 'iso-8859-1',
+	'content_charset' => 'iso-8859-1',
+
+	'languages'   => ['C'],
+	'ver_list'    => [$gitrepo->allversions],
+
+	'ver_default' => 'v2.6.20.3',
+
+	'include_maps' => 
+	    [
+	     [qr|^arch/(.*?)/|, qr|^asm/(.*)|,
+	      sub { "include/asm-$_[0]/$_[1]" }],
+	     [qr|^include/asm-(.*?)/|, qr|^asm/(.*)|,
+	      sub { "include/asm-$_[0]/$_[1]" }],
+	     [qr|^|, qr|^asm/(.*)|,
+	      sub { map { "include/asm-$_/$_[0]" }
+		    qw(i386 alpha arm ia64 m68k mips mips64),
+		    qw(ppc s390 sh sparc sparc64 x86_64) }],
+	     [qr|^|, qr|(.*)|,
+	      sub { "include/$_[0]" }],
+	     ],
+    },
+};

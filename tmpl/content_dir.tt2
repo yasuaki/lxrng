@@ -1,0 +1,11 @@
+<table class="directory">
+[% FOREACH link = dir_listing %]
+<tr class="node">
+<td class="name">
+  <a href="[% link.name %]" class="fref">[% link.node %]</a></td>
+<td class="size">[% link.size %]</td>
+<td class="time">[% link.time %]</td>
+<td class="desc">[% link.desc %]</td>
+</tr>
+[% END %]
+</table>

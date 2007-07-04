@@ -1,0 +1,74 @@
+<span class="close-button">
+<a href="#" onclick="return [% IF navtarget %]window.close();[% ELSE %]hide_search();[% END %]">
+<img border="0" src="../../gfx/close.png" alt="X"></a>
+</span>
+
+[% IF code_res and code_res.idents %]
+<div class="query_desc">Code search: [% code_res.query %]</div>
+<ul>
+[% FOREACH ident = code_res.idents %]
+<li><a class="iref" 
+  href="+ident=[% ident.0 %][% IF navtarget %]?nav[% navtarget %][% END %]"
+  onclick="return ajax_lookup_anchor(null, this);">
+[% ident.1 %]</a> at [% INCLUDE line_reference.tt2, file = ident.2, line = ident.3 %]
+</li>
+[% END %]
+</ul>
+[% END %]
+
+[% IF ident_res %]
+<div class="query_desc">Identifier:
+[% ident_res.ident.1 %]
+<a class="sref"
+  href="+code=[% ident_res.query %][% IF navtarget %]?nav[% navtarget %][% END %]"
+  onclick="return ajax_lookup_anchor(null, this);">
+[% ident_res.query %]</a>, from 
+[% INCLUDE line_reference.tt2,
+	 file = ident_res.ident.2, line = ident_res.ident.3 %]
+</div>
+<em>References:</em>
+<ul>
+[% FOREACH file = ident_res.refs.keys %]
+[% FOREACH line = ident_res.refs.$file %]
+<li>
+[% INCLUDE line_reference.tt2,
+	 file = file, line = line %]
+</li>
+[% END %]
+[% END %]
+</ul>
+[% END %]
+
+[% IF text_res %]
+<div class="query_desc">Freetext search: [% text_res.query %]
+([% text_res.total %] estimated hits)</div>
+<ul>
+[% FOREACH file = text_res.files %]
+<li>[% file.0 %]%
+at [% INCLUDE line_reference.tt2, file = file.1, line = file.2 %]
+</li>
+[% END %]
+</ul>
+[% END %]
+
+[% IF file_res %]
+<div class="query_desc">Filename search: [% file_res.query %]</div>
+<ul>
+[% FOREACH file = file_res.files %]
+<li><a href="[% file %]" onclick="return load_file('[% context.tree %]',
+       '[% file %][% context.args_url %]', '', '');" [% navtarget %]>[% file %]</a>
+</li>
+[% END %]
+</ul>
+[% END %]
+
+[% IF ambig_res %]
+<div class="query_desc">Ambiguous file reference, please choose one:</div>
+<ul>
+[% FOREACH file = ambig_res.files %]
+<li><a href="[% file %]" onclick="return load_file('[% context.tree %]',
+       '[% file %][% context.args_url %]', '', '');" [% navtarget %]>[% file %]</a>
+</li>
+[% END %]
+</ul>
+[% END %]

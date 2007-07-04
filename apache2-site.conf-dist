@@ -1,0 +1,8 @@
+Alias /lxr/ "@@LXRROOT@@/cgi-bin/"
+<Directory "@@LXRROOT@@/cgi-bin/">
+   Options None
+   AllowOverride All
+   Order deny,allow
+   Deny from none
+   Allow from all
+</Directory>

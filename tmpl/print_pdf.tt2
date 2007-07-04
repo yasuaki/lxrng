@@ -1,0 +1,32 @@
+% -*- latex -*-
+\documentclass[a4paper,11pt]{book}
+\usepackage[top=1cm, bottom=2cm, left=1.5cm, right=1cm]{geometry} 
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+%% Uncomment the following two lines to produce pdfs with a prettier
+%% alternative to the computer modern fonts.
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{bbding}
+\pagestyle{fancy}
+\begin{document}
+\setlength\baselineskip{7pt}
+\setlength\parskip{.3\baselineskip}
+\setlength\parindent{0pt}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead{}
+\fancyfoot{}
+\def\dash{\raise2.1pt\hbox{\rule{5pt}{0.3pt}}\hspace{1pt}}
+\newcommand\lxrln[1]{\tiny\hspace*{-4em}\makebox[4em][r]{#1\hspace{1.5ex}}\small}
+\sffamily\small
+%% I kinda like the proportional fonts, but expect they won't be
+%% everyone's cup of tea.  Uncomment next line to use monospace font.
+% \tt
+\fancyfoot[RE,LO]{\textit{\sffamily [% pathdesc %]%
+}}
+\fancyfoot[LE,RO]{\textit{\sffamily \thepage}}
+[% lineno = 1 %][% FOREACH line = lines -%]
+\mbox{}[% line %][% lineno = lineno + 1 %]\\
+[% END %]
+\end{document}

@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <base href="[% base_url %]" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
+    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng" />
+
+    [% javascript %]
+
+    <script type="text/javascript">
+      var use_ajax_navigation=[% IF is_ajax %]1[% ELSE %]0[% END %];
+      var use_popup_navigation=[% IF is_popup %]1[% ELSE %]0[% END %];
+    </script>
+
+    <title>LXR [% context.tree -%]/
+      [%- FOREACH elem = context.path_elements %][% elem.node %][% END %]
+    </title>
+  </head>
+
+  <body class="full"
+     [% IF is_ajax %]onload="load_content();"[% END %]
+     [% IF is_popup %]onload="popup_prepare([% popup_serial %]);"[% END %]>
+
+    <div class="heading">
+      <div class="headingtop"></div>
+	
+      <span class="lxr_title">
+	<span class="lxr_l">l</span><span class="lxr_x">x</span><span class="lxr_r">r</span>
+	<span id="current_path">
+	  <a href="../[% context.vtree %]/">[% context.tree %]/</a>[%
+	  FOREACH elem = context.path_elements
+	  %]<a href="[% elem.path %]">[% elem.node %]</a>[%
+	  END %]
+	</span>
+	<img src="../../gfx/rolldown.png" />
+	[% IF node.name.match('[^/]$') %]
+	<form action="+print=[% node.name %]" method="post">
+	  <button type="submit" class="print"><img src="../../gfx/print.png"></button>
+	</form>
+	[% END %]
+      </span>
+	
+      <div class="lxr_menu">
+	<span class="lxr_version">
+	  <img src="../../gfx/left.png" alt="&lt;&lt;"/>
+	  <form action="[% node.name %]" method="get">
+	    <span id="ver_select">
+	      [% INCLUDE release_select.tt2, context = context %]
+	    </span>
+	  </form>
+	  <img src="../../gfx/right.png" alt="&gt;&gt;"/>
+	</span>
+
+	<span class="lxr_search">
+	  <form action="+search" method="post" onsubmit="return do_search(this);">
+	    <input type="hidden" name="navtarget" value="" />
+	    <input type="text" name="search" id="search" />
+	    <button type="submit">Search</button>
+	  </form>
+	</span>
+
+	<span class="lxr_prefs">
+	  <a href="+prefs?return=[% node.name %]"
+	     onclick="return ajax_prefs();">
+	    Prefs
+	  </a>
+	</span>
+      </div>
+      <form action="+ajax" method="post" onsubmit="return false;">
+	<input type="hidden" name="ajax_lookup" id="ajax_lookup" value="" />
+      </form>
+
+      <div class="headingbottom"></div>
+    </div>
+    
+    <div id="search_results" class="search_results"
+	 [% IF search_res %]style="display: block;"[% END %]>
+      [% IF search_res %][% search_res %][% END %]</div>

@@ -1,0 +1,58 @@
+
+WELCOME
+
+These are the installation instructions for LXRng, such as they are.
+
+
+DEPENDENCIES
+
+(Package names for Ubunty Feisty in brackets, where applicable.)
+
+* Freetext index engine of your choice.  Presently supported:
+  - Search::Xapian
+
+* Database and DBI modules of your choice.  Presently supported:
+  - DBD::Pg [libdbd-pg-perl]
+
+* HTML/Web Perl modules
+  - CGI::Simple [libcgi-simple-perl]
+  - CGI::Ajax [libcgi-ajax-perl]
+  - HTML::Entities [libhtml-parser-perl]
+  - Template [libtemplate-perl]
+
+* "Exuberant ctags", runnable as ctags-exuberant somewhere in the
+   current $PATH. [exuberant-ctags]
+
+* (For generation of png icons from svg source: inkscape [inkscape])
+
+* (For PDF generation: pdflatex [texlive texlive-latex-recommended
+  texlive-pdfetex texlive-fonts-extra lmodern])
+
+
+INSTALLATION
+
+* Create suitable database
+  $ createdb lxrng
+
+* Add www-data (or equivalent HTTP daemon user) as database user.  No
+  special privileges should be afforded.
+  $ createuser www-data
+
+* Copy the lxrng.conf-dist to lxrng.conf and edit as desired.
+
+* Create database tables
+  $ lxr-db-admin <my-tree> --init
+
+* Cross reference your source repository
+  $ lxr-genxref <my-tree>
+
+* Copy the apache2-site.conf-dist to apache2-site.conf and adjust.
+  # ln -s <lxr-path>/apache2-site.conf /etc/apache2/sites-enabled/010-lxrng
+  # /etc/init.d/apache2 reload
+  (Or equivalent, depending on operating system (distribution) flavor.)
+
+* (Generate PNG icons)
+  $ make -C <lxr-path>/cgi-bin/gfx
+
+* Point web browser to configured web location.
+

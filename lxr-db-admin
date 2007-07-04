@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+use Getopt::Long;
+
+use LXRng ROOT => $FindBin::Bin;
+use LXRng::Context;
+
+my $reset  = 0;
+my $drop   = 0;
+my $init   = 0;
+
+GetOptions("reset" => \$reset,
+	   "drop"  => \$drop,
+	   "init"  => \$init)
+    or die "Failed to parse options";
+
+my $tree = $ARGV[0];
+my $context = LXRng::Context->new('tree' => $tree)
+    if $tree;
+
+die "Usage: $0 <tree-id> [--init | --reset | --drop]\n"
+    unless $context and ($reset or $drop or $init);
+
+my $index   = $context->config->{'index'};
+my $hash    = $context->config->{'search'};
+
+if ($reset or $drop) {
+    $index->drop_db();
+    $hash->reset_db();
+}
+if ($reset or $init) {
+    $index->init_db();
+}
+

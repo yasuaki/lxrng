@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
+    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng" />
+
+    <title id="title">LXR Preferences</title>
+  </head>
+  <body>
+
+    <div class="heading">
+      <div class="headingtop"></div>
+
+      <span class="lxr_title">
+	<span class="lxr_l">l</span><span class="lxr_x">x</span><span class="lxr_r">r</span>
+      </span>
+
+      <div class="lxr_menu">
+	<span class="lxr_prefs"><a href="[% return || '.' %]">Back</a></span>
+      </div>
+      <div class="headingbottom"></div>
+    </div>
+
+    <div class="pref_heading">Personal preferences for this LXRng site</div>
+
+    <form method="post" action="+prefs">
+      <div>
+      <input type="hidden" name="return" value="[% return %]" />
+      Where do you want your search results to be displayed?
+      <ol>
+	<li><input type="radio" name="resultloc" value="replace" />
+	Replace the active source browsing window</li>
+
+	<li><input type="radio" name="resultloc" value="popup" />
+	Show them in a popup window (requires JavaScript enabled)<br>
+
+	<font size="-1"><em>If your browser limits the ability to
+	raise/lower windows from JavaScript (Firefox: Edit ->
+	Preferences -> Content -> Enable JavaScript -> Advanced ->
+	Allow scripts to: Raise or lower windows), make sure you
+	either close your search result windows or avoid hiding them
+	behing other windows after use.</em></font></li>
+
+	<li><input type="radio" name="resultloc" value="ajax" />
+	Show them inside the active source browsing window
+	(requires JavaScript enabled)
+	</li>
+      </ol>
+      <p>
+	(Cookies need to be enabled for LXR preferences to take effect.)
+      </p>
+      <button type="submit">Store preferences</button>
+    </div>
+    </form>
+
+  </body>
+</html>
