@@ -74,7 +74,7 @@ sub allversions {
 }
 
 sub node {
-    my ($self, $path, $release) = @_;
+    my ($self, $path, $release, $rev) = @_;
 
     $path =~ s,^/+,,;
     $path =~ s,/+$,,;
@@ -88,14 +88,21 @@ sub node {
 	return LXRng::Repo::Git::Directory->new($self, '', $ref);
     }
 
-    my $git = $self->_git_cmd('ls-tree', $release, $path);
-    my ($mode, $type, $ref, $gitpath) = split(" ", <$git>);
+    my $type;
+    if ($rev) {
+	$type = 'blob';
+    }
+    else {
+	my $git = $self->_git_cmd('ls-tree', $release, $path);
+	my ($mode, $gitpath);
+	($mode, $type, $rev, $gitpath) = split(" ", <$git>);
+    }
 
     if ($type eq 'tree') {
-	return LXRng::Repo::Git::Directory->new($self, $path, $ref, $release);
+	return LXRng::Repo::Git::Directory->new($self, $path, $rev, $release);
     }
     elsif ($type eq 'blob') {
-	return LXRng::Repo::Git::File->new($self, $path, $ref, $release);
+	return LXRng::Repo::Git::File->new($self, $path, $rev, $release);
     }
     else {
 	return undef;

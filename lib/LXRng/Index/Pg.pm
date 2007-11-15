@@ -179,6 +179,8 @@ sub init_db {
 	or die($dbh->errstr);
     $dbh->do(qq{create index ${pre}file_idx1 on ${pre}files using btree (path)})
 	or die($dbh->errstr);
+    $dbh->do(qq{create index ${pre}filerel_idx1 on ${pre}filereleases using btree (id_release)})
+	or die($dbh->errstr);
 
     $dbh->do(qq{grant select on ${pre}charsets to public}) or die($dbh->errstr);
     $dbh->do(qq{grant select on ${pre}trees to public}) or die($dbh->errstr);
@@ -212,6 +214,7 @@ sub drop_db {
     $dbh->do(qq{drop index ${pre}usage_idx2});
     $dbh->do(qq{drop index ${pre}include_idx1});
     $dbh->do(qq{drop index ${pre}file_idx1});
+    $dbh->do(qq{drop index ${pre}filerel_idx1});
 
     $dbh->do(qq{drop table ${pre}usage});
     $dbh->do(qq{drop table ${pre}identifiers});

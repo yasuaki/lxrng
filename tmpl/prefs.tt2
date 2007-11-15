@@ -18,7 +18,7 @@
       </span>
 
       <div class="lxr_menu">
-	<span class="lxr_prefs"><a href="[% return || '.' %]">Back</a></span>
+	<span class="lxr_prefs"><a href="./[% return %]">Back</a></span>
       </div>
       <div class="headingbottom"></div>
     </div>
@@ -30,10 +30,12 @@
       <input type="hidden" name="return" value="[% return %]" />
       Where do you want your search results to be displayed?
       <ol>
-	<li><input type="radio" name="resultloc" value="replace" />
+	<li><input type="radio" name="resultloc" value="replace"
+	  [% IF is_replace %]checked[% END %]/>
 	Replace the active source browsing window</li>
 
-	<li><input type="radio" name="resultloc" value="popup" />
+	<li><input type="radio" name="resultloc" value="popup"
+	  [% IF is_popup %]checked[% END %]/>
 	Show them in a popup window (requires JavaScript enabled)<br>
 
 	<font size="-1"><em>If your browser limits the ability to
@@ -41,9 +43,10 @@
 	Preferences -> Content -> Enable JavaScript -> Advanced ->
 	Allow scripts to: Raise or lower windows), make sure you
 	either close your search result windows or avoid hiding them
-	behing other windows after use.</em></font></li>
+	behind other windows after use.</em></font></li>
 
-	<li><input type="radio" name="resultloc" value="ajax" />
+	<li><input type="radio" name="resultloc" value="ajax"
+	  [% IF is_ajax %]checked[% END %]/>
 	Show them inside the active source browsing window
 	(requires JavaScript enabled)
 	</li>

@@ -16,7 +16,7 @@ sub context {
 
 sub safe_html {
     my ($str) = @_;
-    return encode_entities($str, '^\n\r\t !\#\$\(-;=?-~');
+    return encode_entities($str, '^\n\r\t !\#\$\(-;=?-~\200-\377');
 }
 
 sub make_format_newline {

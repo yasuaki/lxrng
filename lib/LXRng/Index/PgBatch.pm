@@ -77,7 +77,7 @@ sub flush {
 	    }
 	}
 	$self->dbh->commit() unless $self->dbh->{AutoCommit};
-	$self->dbh->do(q(analyze)) if $i > 100000;
+	$self->dbh->do(q(analyze)) if $i > 500000;
 	$self->dbh->disconnect();
 	warn "\n*** index: flushed $i rows\n";
 	kill(9, $$);

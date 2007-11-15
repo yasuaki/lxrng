@@ -273,6 +273,12 @@ div.progress {
 	font-style: italic;
 }
 
+div.error {
+	font-weight: bold;
+	font-style: italic;
+	color: #E04040;
+}
+
 form {
 	display: inline;
 }

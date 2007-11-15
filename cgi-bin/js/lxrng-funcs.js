@@ -74,9 +74,15 @@ var pending_ver;
 var pending_line;
 
 function ajax_nav() {
-	var file = this.href.replace(/^(http:.*?lxr\/[+]ajax\/|)/, '');
-	// alert(loaded_file + ' - ' + file);
+	var file = this.href.replace(/^(http:.*?\/.*?[+][*]\/|)/, '');
 	load_file(loaded_tree, file, loaded_ver, '');
+	return false;
+}
+
+function ajax_jumpto_line() {
+	location.hash = location.hash.replace(/\#L\d+$/, '') + 
+		this.href.replace(/.*(\#L\d+)$/, '$1');
+	check_hash_navigation();	
 	return false;
 }
 
@@ -102,12 +108,14 @@ function check_hash_navigation() {
 		if (location.hash.replace(/\#L\d+$/, '') == 
 		    loaded_hash.replace(/\#L\d+$/, ''))
 		{
-			var l = location.hash.replace(/.*(\#L\d+)$/, '$1');
+			var l = location.hash.replace(/.*#(L\d+)$/, '$1');
 			var a = document.getElementById(l);
 			if (l && a) {
-				a.name = location.hash;
+				a.name = location.hash.replace(/^\#/, '');
 				location.hash = a.name;
+				loaded_hash = location.hash;
 			}
+			hash_check = setTimeout('check_hash_navigation()', 50);
 		}
 		else {
 			// alert(location.hash + ' / ' + loaded_hash);
@@ -150,6 +158,7 @@ function load_file(tree, file, ver, line) {
 
 function load_file_finalize(content) {
 	var res = document.getElementById('content');
+	res.innerHTML = 'Done';
 	res.innerHTML = content;
 	var head = document.getElementById('current_path');
 	head.innerHTML = '<a class=\"fref\" href=\".\">' + pending_tree + '</a>';
@@ -165,11 +174,11 @@ function load_file_finalize(content) {
 	}
 	document.title = 'LXR ' + pending_tree + '/' + pending_file;
 
-	var full_path = pending_tree;
+	var full_tree = pending_tree;
 	if (pending_ver) {
-		full_path = full_path + '+' + pending_ver;
+		full_tree = full_tree + '+' + pending_ver;
 	}
-	full_path = full_path + '/' + pending_file.replace(/^\/?/, '');
+	var full_path = full_tree + '/' + pending_file.replace(/^\/?/, '');
 
 	var pre = document.getElementById('file_contents');
 	if (pre && pre.className == 'partial') {
@@ -178,6 +187,9 @@ function load_file_finalize(content) {
 			      [load_file_finalize]);
 	}
 
+	if (hash_check) {
+		clearTimeout(hash_check);
+	}
 	if (pending_line) {
 		var anchor = document.getElementById('L' + pending_line);
 		if (anchor) {
@@ -197,17 +209,17 @@ function load_file_finalize(content) {
 	loaded_tree = pending_tree;
 	loaded_file = pending_file;
 	loaded_ver = pending_ver;
-	if (hash_check) {
-		clearTimeout(hash_check);
-	}
 	hash_check = setTimeout('check_hash_navigation()', 50);
 
+//	return;
+//	TODO: This really takes oodles of time.  Consider coding into html.
 	var i;
 	for (i = 0; i < document.links.length; i++) {
-		if (document.links[i].className == 'fref' || 
-		    document.links[i].className == 'line')
-		{
+		if (document.links[i].className == 'fref') {
 			document.links[i].onclick = ajax_nav;
+		}
+		else if (document.links[i].className == 'line') {
+			document.links[i].onclick = ajax_jumpto_line;
 		}
 		else if (document.links[i].className == 'sref' || 
 		    document.links[i].className == 'falt')
@@ -243,8 +255,10 @@ function load_content_finalize(content) {
 function update_version(verlist, base_url, tree, defversion, path) {
 	if (use_ajax_navigation) {
 		var file = location.hash.replace(/^[^\/]*\//, '');
+		var line = file.replace(/.*\#L(\d+)/, '$1');
+		file = file.replace(/\#L\d+$/, '');
 	
-		load_file(loaded_tree, file, verlist.value, '');
+		load_file(loaded_tree, file, verlist.value, line);
 		return false;
 	}
 	else {
@@ -279,7 +293,10 @@ function ajax_lookup_anchor(event, anchor) {
 	if (!anchor)
 		anchor = this;
 	
-	lookup = anchor.href.replace(/^(http:.*?lxr\/[+]ajax\/|)/, '');
+	// TODO: Fix
+//	lookup = anchor.href.replace(/^(http:.*?lxr\/[+]ajax\/|)/, '');
+	lookup = anchor.href.replace(/^(http:.*?\/.*?[+][*]\/|)/, '');
+
 	var lvar = document.getElementById('ajax_lookup');
 	lvar.value = lookup;
 

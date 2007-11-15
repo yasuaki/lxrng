@@ -86,15 +86,15 @@ sub make_add_ident {
 }
 
 sub index_file {
-    my ($context, $index, $tree, $rel, $file, $fileid) = @_;
+    my ($context, $index, $tree, $file, $fileid) = @_;
 
     my $lang = LXRng::Lang->new($file);
 
-    return unless $lang->doindex();
     unless ($index->to_index($fileid)) {
 	progress_mark("*");
 	return;
     }
+    return unless $lang->doindex();
 
     my $add_ident = make_add_ident($index, $fileid);
    
@@ -137,20 +137,18 @@ sub index_file {
 }
 
 sub reference_file {
-    my ($context, $index, $tree, $rel, $file, $fileid) = @_;
+    my ($context, $index, $tree, $file, $fileid) = @_;
 
     my $lang = LXRng::Lang->new($file);
-
-    return unless $lang->doindex();
 
     unless ($index->to_reference($fileid)) {
 	progress_mark(".");
 	return;
     }
+    return unless $lang->doindex();
 
-#    sysopen(my $handle, $file->phys_path, O_RDONLY) or die($!);
-#    my $parse = new LXRng::Parse::Simple($handle, 8, @{$lang->parsespec});
-    my $parse = new LXRng::Parse::Simple($file->handle, 8, @{$lang->parsespec});
+    my $parse = new LXRng::Parse::Simple($file->handle, 8,
+					 @{$lang->parsespec});
 
     progress_info("referencing ".$file->name.", ".
 		  $file->size." bytes ($lang)...");
@@ -196,7 +194,7 @@ sub reference_file {
 }
 
 sub hash_file {
-    my ($context, $index, $hash, $tree, $rel, $file, $fileid) = @_;
+    my ($context, $index, $hash, $tree, $file, $fileid, $rels) = @_;
 
     my $docid;
     if ($index->to_hash($fileid)) {
@@ -218,47 +216,19 @@ sub hash_file {
 		$doc->add_posting($term, $.*100 + $pos++);
 	    }
 	}
-	$docid = $hash->add_document($doc, $index->release_id($tree, $rel));
+
+	$docid = $hash->add_document($doc, [map {
+	    $index->release_id($tree, $_) } @$rels]);
 	$index->add_hashed_document($fileid, $docid);
     }
     else {
 	$docid = $index->get_hashed_document($fileid);
-	if ($hash->add_release($docid, $index->release_id($tree, $rel))) {
-	    progress_mark("+");
-	}
-	else {
-	    progress_mark("-");
-	}
-    }
-    # for all releases this fileid belongs to (that are not is_indexed)
-    # add_release to $docid.
-}
-
-sub do_index {
-    my ($context, $index, $hash, $tree, $rel, $iter) = @_;
-
-    my $node;
-    while (defined($node = $iter->next)) {
-	next if $node->name =~ /\.o$/;
-	my $fileid = $index->rfile_id($node, 1);
-	$index->add_filerelease($tree, $rel, $fileid);
-	index_file($context, $index, $tree, $rel, $node, $fileid);
-	hash_file($context, $index, $hash, $tree, $rel, $node, $fileid);
+	my $changed = $hash->add_release($docid, [map {
+	    $index->release_id($tree, $_) } @$rels]);
+	progress_mark($changed ? "+" : "-");
     }
 }
 
-sub do_reference {
-    my ($context, $index, $hash, $tree, $rel, $iter) = @_;
-
-    my $node;
-    while (defined($node = $iter->next)) {
-	next if $node->name =~ /\.o$/;
-	my $fileid = $index->rfile_id($node, 1);
-	LXRng::Index::transaction {
-	    reference_file($context, $index, $tree, $rel, $node, $fileid);
-	} $index;
-    }
-}
 
 my $tree = shift(@ARGV);
 my @versions = @ARGV;
@@ -269,33 +239,76 @@ my $index   = $context->config->{'index'};
 my $hash    = $context->config->{'search'};
 my $rep     = $context->config->{'repository'};
 
-sub do_genxref {
+
+sub inventory_release {
     my ($tree, $version) = @_;
 
-    print("\nindexing release $version...\n");
-    my $root    = $rep->node('/', $version) or die "bad root";
-    $context->release($version);
-    
+    print("\nrecording all files for $version...\n");
+
+    my $iter = $rep->iterator($version);
     LXRng::Index::transaction {
-	do_index($context, $index, $hash, $tree, $version, $rep->iterator($version));
-	do_reference($context, $index, $hash, $tree, $version, $rep->iterator($version));
+	my $root = $rep->node('/', $version) or die "bad root";
+
+	my $node;
+	while (defined($node = $iter->next)) {
+	    next if $node->name =~ /\.o$/;
+	    my $fileid = $index->rfile_id($node, 1);
+	    $index->add_filerelease($tree, $version, $fileid);
+	}
+    } $index;
+}
+
+sub index_pending {
+    my ($tree) = @_;
+    my $pending = $index->pending_files($tree);
+
+    print("\nindexing ".(0+@$pending)." outstanding files...\n");
+    LXRng::Index::transaction {
+ 	foreach my $p (@$pending) {
+ 	    my ($fileid, $path, $rev) = @$p;
+ 	    my $rels = $index->new_releases_by_file($fileid);
+ 	    next unless @$rels;
+ 	    my $node = $rep->node($path, $$rels[0], $rev);
+ 	    next unless $node;
+
+ 	    hash_file($context, $index, $hash, $tree, $node, $fileid, $rels);
+ 	    index_file($context, $index, $tree, $node, $fileid);
+ 	}
     } $index;
 
-    $hash->flush();
-    # Mark release as is_indexed
-    progress_info("release $version done");
+    print("\nreferencing ".(0+@$pending)." outstanding files...\n");
+    LXRng::Index::transaction {
+	foreach my $p (@$pending) {
+	    my ($fileid, $path, $rev) = @$p;
+	    my $rels = $index->new_releases_by_file($fileid);
+	    next unless @$rels;
+	    $context->release($$rels[0]); # Needed for include resolution.
+	    my $node = $rep->node($path, $$rels[0], $rev);
+	    next unless $node;
+	    
+	    LXRng::Index::transaction {
+		reference_file($context, $index, $tree, $node, $fileid, $rels);
+	    } $index;
+	}
+    } $index;
+
+    my $done = $index->update_indexed_releases($tree);
+
+    progress_info("releases ".join(", ", @$done)." done") if
+	@$done;
 }
 
 if (@versions) {
     foreach my $version (@versions) {
-	do_genxref($tree, $version);
+	inventory_release($tree, $version);
     }
 }
 else {
-    # Run pass over all un-indexed releases, record all files.
-
     foreach my $version (reverse @{$context->all_releases}) {
 	next if $index->_get_release($index->tree_id($tree), $version);
-	system($0, $tree, $version);
+	inventory_release($tree, $version);
     }
 }
+
+index_pending($tree);
+$hash->flush();

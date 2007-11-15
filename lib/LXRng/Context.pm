@@ -9,7 +9,10 @@ sub new {
     $self = bless({}, $self);
 
     if ($args{'query'}) {
-	$$self{'req_url'} = $args{'query'}->url();
+	# CGI::Simple appears to confuse '' with undef for SCRIPT_NAME.
+	# $$self{'req_url'} = $args{'query'}->url();
+	$$self{'req_url'} =
+	    $args{'query'}->url(-base => 1).'/'.$ENV{'SCRIPT_NAME'};
 
 	foreach my $p ($args{'query'}->param) {
 	    $$self{'params'}{$p} = [$args{'query'}->param($p)];
@@ -28,7 +31,7 @@ sub new {
     }
 
     if ($$self{'tree'} =~ s/[+](.*)$//) {
-	$$self{'release'} = $1;
+	$$self{'release'} = $1 if $1 ne '*';
     }
 
     if ($$self{'tree'}) {
@@ -137,7 +140,7 @@ sub path_elements {
 sub config {
     my ($self) = @_;
 
-    return $$self{'config'};
+    return $$self{'config'} || {};
 }
 
 sub prefs {
@@ -147,7 +150,7 @@ sub prefs {
 }
 
 sub base_url {
-    my ($self) = @_;
+    my ($self, $notree) = @_;
 
     my $base = $self->config->{'base_url'};
     unless ($base) {
@@ -156,7 +159,10 @@ sub base_url {
     }
 
     $base =~ s,/+$,,;
-    $base .= '/lxr/'.$self->vtree.'/';
+
+    return $base if $notree;
+
+    $base .= '/'.$self->vtree.'/';
     $base =~ s,//+$,/,;
 
     return $base;

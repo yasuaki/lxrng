@@ -4,7 +4,6 @@ use strict;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use lib '/home/argggh/www/lxrng/_deps/share/perl/5.8.4';
 
 use CGI::Carp qw(fatalsToBrowser);
 use IO::Handle;
@@ -50,6 +49,11 @@ sub print_markedup_file {
     my ($context, $template, $node) = @_;
 
     autoflush STDOUT 1;
+
+    unless ($node) {
+	print('<div class="error">File not found.</div>');
+	return;
+    }
 
     if ($node->isa('LXRng::Repo::Directory')) {
 	my $markup = LXRng::Markup::Dir->new('context' => $context,
@@ -126,29 +130,29 @@ sub print_release_list {
 }
 
 sub source {
-    my ($context, $template, $query) = @_;
+    my ($context, $template, $query, $template_extra_args) = @_;
 
-    my $pjx = CGI::Ajax->new('pjx_search' => 'lxr',
-			     'pjx_load_file' => 'lxr',
-			     'pjx_releases' => 'lxr');
+    my $pjx = CGI::Ajax->new('pjx_search' => '',
+			     'pjx_load_file' => '',
+			     'pjx_releases' => '');
     $pjx->js_encode_function('escape');
-    
+
     if ($context->prefs and $context->prefs->{'navmethod'} eq 'ajax') {
-	my $path = $query->path_info;
-	$path =~ s,^/[+ ],,;
-	if ($path ne '') {
-	    $path =~ s,^/+,,;
-	    print($query->redirect($query->url(-full => 1).
-				   '#'.$path));
+	if ($context->tree ne '') {
+	    my $base = $context->base_url(1);
+	    my $path = $context->vtree.'/'.$context->path;
+	    print($query->redirect($base.'#'.$path));
 	}
 	else {
 	    print($query->header(-type => 'text/html',
 				 -charset => 'utf-8'));
 
-	    my $base = $query->url(-full => 1);
+	    my $base = $context->base_url(1);
+	    $base =~ s,/*$,/ajax+*/,;
+
 	    $template->process('main.tt2',
 			       {'context'    => $context,
-				'base_url'   => $base.'/+ajax/',
+				'base_url'   => $base,
 				'javascript' => $pjx->show_javascript(),
 				'is_ajax' => 1})
 		or die $template->error();
@@ -168,11 +172,13 @@ sub source {
 
     my $ver = $context->release;
     my $rep = $context->config->{'repository'};
-    my $node = $rep->node($context->path, $ver);
+    die "No tree given" unless $rep;
 
+    my $node = $rep->node($context->path, $ver);
     die "Node not found: ".$context->path." ($ver)" unless $node;
 
-    my %template_args = ('context'    => $context,
+    my %template_args = (%{$template_extra_args || {}},
+			 'context'    => $context,
 			 'tree'	      => $context->tree,
 			 'node'       => $node,
 			 'base_url'   => $context->base_url,
@@ -288,7 +294,7 @@ sub search {
 	    $$ident[5] &&= $LXRng::Lang::deftypes{$$ident[5]};
 
 	    use Data::Dumper;
-	    warn Dumper($symname, $symid, $ident, $refs);
+	    # warn Dumper($symname, $symid, $ident, $refs);
 	    $template_args{'ident_res'} = {'query' => $symname,
 					   'ident' => $ident,
 					   'refs' => $refs};
@@ -326,26 +332,23 @@ sub search_result {
 			 'search_res' => $result,
 			 'base_url'   => $context->base_url);
 
-    my $gzip = do_compress_response($query);
-
-    print($query->header(-type => 'text/html',
-			 -charset => 'utf-8',
-			 $gzip ? (-content_encoding => 'gzip') : ()));
-
-    binmode(\*STDOUT, ":gzip") if $gzip;
-
     if ($context->prefs and $context->prefs->{'navmethod'} eq 'popup') {
+	my $gzip = do_compress_response($query);
+
+	print($query->header(-type => 'text/html',
+			     -charset => 'utf-8',
+			     $gzip ? (-content_encoding => 'gzip') : ()));
+
+	binmode(\*STDOUT, ":gzip") if $gzip;
+
 	$template->process('popup_main.tt2',
 			   {%template_args,
 			    'is_popup' => 1})
 	    or die $template->error();
     }
     else {
-	$template->process('main.tt2',
-			   {%template_args,
-			    'file_content' => '',
-			    'is_dir' => 0})
-	    or die $template->error();
+	$context->path('');
+	source($context, $template, $query, \%template_args);
     }
 }
 
@@ -423,8 +426,13 @@ sub handle_preferences {
 	print($query->header(-type => 'text/html',
 			     -charset => 'utf-8'));
 
+	my $nav = 'is_replace';
+	$nav = 'is_'.$context->prefs->{'navmethod'} if
+	    $context->prefs and $context->prefs->{'navmethod'} ne '';
+	    
 	$template->process('prefs.tt2',
-			   {'return' => $query->param('return')})
+			   {'return' => $query->param('return'),
+			    $nav => 1})
 	    or die $template->error();
     }
 }

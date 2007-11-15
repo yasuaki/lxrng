@@ -56,7 +56,8 @@ at [% INCLUDE line_reference.tt2, file = file.1, line = file.2 %]
 <ul>
 [% FOREACH file = file_res.files %]
 <li><a href="[% file %]" onclick="return load_file('[% context.tree %]',
-       '[% file %][% context.args_url %]', '', '');" [% navtarget %]>[% file %]</a>
+       '[% file %][% context.args_url %]', '[% context.release %]', '');"
+    [% navtarget %]>[% file %]</a>
 </li>
 [% END %]
 </ul>
@@ -67,7 +68,8 @@ at [% INCLUDE line_reference.tt2, file = file.1, line = file.2 %]
 <ul>
 [% FOREACH file = ambig_res.files %]
 <li><a href="[% file %]" onclick="return load_file('[% context.tree %]',
-       '[% file %][% context.args_url %]', '', '');" [% navtarget %]>[% file %]</a>
+       '[% file %][% context.args_url %]', '[% context.release %]', '');"
+    [% navtarget %]>[% file %]</a>
 </li>
 [% END %]
 </ul>

@@ -51,7 +51,8 @@ sub parsespec {
 	    'comment',	'//',		"\$",
 	    'string',	'"',		'"',
 	    'string',	"'",		"'",
-	    'include',	'#\s*include',	"\$"];
+	    'include',	'#\s*include\s+"',	'"',
+	    'include',	'#\s*include\s+<',	'>'];
 }
 
 sub typemap {

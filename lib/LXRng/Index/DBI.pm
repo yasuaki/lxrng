@@ -73,6 +73,110 @@ sub _get_tree {
     return $id;
 }
 
+sub pending_files {
+    my ($self, $tree) = @_;
+
+    my $tree_id = $self->_get_tree($tree);
+    return [] unless $tree_id;
+
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+
+    # Can be made more fine grained by consulting filestatus, but all
+    # hashed documents need to have their termlist updated...  Just
+    # include all files participating in releases not yet fully
+    # indexed.
+    my $sth = $$self{'sth'}{'pending_files'} ||=
+	$dbh->prepare(qq{
+	    select rv.id, f.path, rv.revision
+		from ${pre}revisions rv, ${pre}files f
+		where rv.id_file = f.id
+		and rv.id in (select fr.id_rfile
+			      from ${pre}releases r, ${pre}filereleases fr
+			      where r.id = fr.id_release
+			      and r.id_tree = ?
+			      and r.is_indexed = 'f')});
+
+# 	$dbh->prepare(qq{
+# 	    select rv.id, f.path, rv.revision 
+# 		from ${pre}files f, ${pre}revisions rv 
+# 		where rv.id_file = f.id
+# 		and not exists(select 1 from ${pre}filestatus fs
+# 			       where fs.id_rfile = rv.id
+# 			       and fs.indexed = 't'
+# 			       and fs.hashed = 't'
+# 			       and fs.referenced = 't')
+# 		and exists(select 1 from ${pre}filereleases fr, ${pre}releases r
+# 			   where fr.id_rfile = rv.id
+# 			   and fr.id_release = r.id
+# 			   and r.id_tree = ?)});
+    if ($sth->execute($tree_id) > 0) {
+	return $sth->fetchall_arrayref();
+    }
+    else {
+	$sth->finish();
+	return [];
+    }
+}
+
+sub new_releases_by_file {
+    my ($self, $file_id) = @_;
+
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+    my $sth = $$self{'sth'}{'releases_by_file'} ||=
+	$dbh->prepare(qq{
+	    select r.release_tag from ${pre}releases r, ${pre}filereleases f
+		where r.id = f.id_release and f.id_rfile = ? and r.is_indexed = 'f'});
+    if ($sth->execute($file_id) > 0) {
+	return [map { $$_[0] } @{$sth->fetchall_arrayref()}];
+    }
+    else {
+	$sth->finish();
+	return [];
+    }
+}
+
+sub update_indexed_releases {
+    my ($self, $tree) = @_;
+
+    my $tree_id = $self->_get_tree($tree);
+    return [] unless $tree_id;
+    
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+    my $sth = $$self{'sth'}{'update_indexed_releases_find'} ||=
+	$dbh->prepare(qq{
+	    select r.id, r.release_tag
+		from ${pre}releases r
+		where is_indexed = 'f'
+		and not exists (select 1
+				from ${pre}filereleases fr
+				left outer join ${pre}filestatus fs
+				on (fr.id_rfile = fs.id_rfile)
+				where fr.id_release = r.id
+				and (fs.id_rfile is null
+				     or fs.indexed = 'f'
+				     or fs.hashed = 'f'
+				     or fs.referenced = 'f'))});
+    
+    if ($sth->execute() > 0) {
+	my $rels = $sth->fetchall_arrayref();
+	$sth->finish();
+	$sth = $$self{'sth'}{'update_indexed_releases_set'} ||=
+	    $dbh->prepare(qq{
+		update ${pre}releases set is_indexed = 't' where id = ?});
+	foreach my $r (@$rels) {
+	    $sth->execute($$r[0]);
+	}
+	$sth->finish();
+	return [map { $$_[1] } @$rels];
+    }
+    else {
+	return [];
+    }
+}
+
 sub _get_release {
     my ($self, $tree_id, $release) = @_;
 
@@ -345,14 +449,19 @@ sub get_symbol_usage {
 
     my $dbh = $self->dbh;
     my $pre = $self->prefix;
-    my $sth = $$self{'sth'}{'get_symbol_usage'} ||=
+
+    # Postgres' query optimizer deals badly with placeholders and
+    # prepared statements in this case.
+    return undef unless $symid =~ /^\d+$/s;
+    my $sth =
 	$dbh->prepare(qq{
 	    select u.id_rfile, u.line
 		from ${pre}usage u, ${pre}filereleases fr
-		where u.id_symbol = ? 
-		and u.id_rfile = fr.id_rfile and fr.id_release = ?});
+		where u.id_symbol = $symid
+		and u.id_rfile = fr.id_rfile and fr.id_release = ?
+		limit 1000});
 
-    $sth->execute($symid, $rel_id);
+    $sth->execute($rel_id);
     my $res = $sth->fetchall_arrayref();
     $sth->finish();
 

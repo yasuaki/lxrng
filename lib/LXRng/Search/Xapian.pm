@@ -32,9 +32,11 @@ sub new_document {
 }
 
 sub add_document {
-    my ($self, $doc, $rel_id) = @_;
+    my ($self, $doc, $rel_ids) = @_;
    
-    $doc->add_term('__@@LXRREL_'.$rel_id);
+    foreach my $r (@$rel_ids) {
+	$doc->add_term('__@@LXRREL_'.$r);
+    }
     my $doc_id = $self->wrdb->add_document($doc);
     $self->{'writes'}++;
     $self->flush() if $self->{'writes'} % 499 == 0;
@@ -42,20 +44,25 @@ sub add_document {
 }
 
 sub add_release {
-    my ($self, $doc_id, $rel_id) = @_;
+    my ($self, $doc_id, $rel_ids) = @_;
 
-    my $reltag = '__@@LXRREL_'.$rel_id;
     my $doc = $self->wrdb->get_document($doc_id);
 
-    my $term = $doc->termlist_begin;
     my $termend = $doc->termlist_end;
-    $term->skip_to($reltag);
-    if ($term ne $termend) {
-	return 0 if $term->get_termname eq $reltag;
+    my $changes = 0;
+    foreach my $r (@$rel_ids) {
+	my $reltag = '__@@LXRREL_'.$r;
+	my $term = $doc->termlist_begin;
+	$term->skip_to($reltag);
+	if ($term ne $termend) {
+	    next if $term->get_termname eq $reltag;
+	}
+	$doc->add_term($reltag);
+	$changes++;
     }
-    $doc->add_term($reltag);
-    $self->wrdb->replace_document($doc_id, $doc);
-    return 1;
+
+    $self->wrdb->replace_document($doc_id, $doc) if $changes;
+    return $changes;
 }
 
 sub flush {

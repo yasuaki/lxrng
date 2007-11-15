@@ -2,9 +2,22 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
   <head>
-    <base href="[% base_url %]" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-
+    [% IF is_ajax %]
+    <script type="text/javascript">
+      var tree = location.hash.match(/^#([^/+]+)([+][^/]*|)/);
+      if (tree) {
+	var base = '[% base_url %]';
+	base = base.replace(/\/ajax[+][*]/, '/' + tree[1] + '+*');
+  	document.write('<base href="' + base + '" />');
+      }
+      else {
+  	document.write('<base href="[% base_url %]" />');
+      }
+    </script>
+    [% ELSE %]
+    <base href="[% base_url %]" />
+    [% END %]
     <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
     <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng" />
 
@@ -36,6 +49,7 @@
 	  END %]
 	</span>
 	<img src="../../gfx/rolldown.png" />
+	<!-- TODO: appears to break w. ajax nav. -->
 	[% IF node.name.match('[^/]$') %]
 	<form action="+print=[% node.name %]" method="post">
 	  <button type="submit" class="print"><img src="../../gfx/print.png"></button>

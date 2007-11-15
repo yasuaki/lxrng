@@ -24,7 +24,7 @@ return {
 	'index'       => $index,
 	'search'      => $search,
 
-	'base_url'    => 'http://lxr-test.linpro.no/',
+	'base_url'    => 'http://lxr-test.linpro.no/lxr',
 	# Must be writable by httpd user:
 	'cache'	      => '/var/lib/lxrng/cache',
 
