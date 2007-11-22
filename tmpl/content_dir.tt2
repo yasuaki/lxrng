@@ -1,4 +1,4 @@
-<table class="directory">
+<table class="directory" id="content_dir">
 [% FOREACH link = dir_listing %]
 <tr class="node">
 <td class="name">

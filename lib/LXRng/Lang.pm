@@ -28,9 +28,10 @@ use vars qw(@languages %deftypes %defweight);
 		  qw(c f i n s t u p x v d e g m l) };
 
 
-sub import {
-    my ($self, @langs) = @_;
+sub init {
+    my ($self, $context) = @_;
 
+    my @langs = @{$context->config->{'languages'} || []};
     push(@langs, 'Undefined');
     foreach my $l (@langs) {
 	eval "require LXRng::Lang::$l";

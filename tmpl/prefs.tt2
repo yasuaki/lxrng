@@ -1,10 +1,10 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
-    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng" />
+    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng">
 
     <title id="title">LXR Preferences</title>
   </head>
@@ -15,6 +15,7 @@
 
       <span class="lxr_title">
 	<span class="lxr_l">l</span><span class="lxr_x">x</span><span class="lxr_r">r</span>
+	Personal preferences for this LXRng site
       </span>
 
       <div class="lxr_menu">
@@ -23,19 +24,18 @@
       <div class="headingbottom"></div>
     </div>
 
-    <div class="pref_heading">Personal preferences for this LXRng site</div>
-
+    <p>
     <form method="post" action="+prefs">
       <div>
-      <input type="hidden" name="return" value="[% return %]" />
+      <input type="hidden" name="return" value="[% return %]">
       Where do you want your search results to be displayed?
       <ol>
 	<li><input type="radio" name="resultloc" value="replace"
-	  [% IF is_replace %]checked[% END %]/>
+	  [% IF is_replace %]checked[% END %]>
 	Replace the active source browsing window</li>
 
 	<li><input type="radio" name="resultloc" value="popup"
-	  [% IF is_popup %]checked[% END %]/>
+	  [% IF is_popup %]checked[% END %]>
 	Show them in a popup window (requires JavaScript enabled)<br>
 
 	<font size="-1"><em>If your browser limits the ability to
@@ -46,11 +46,12 @@
 	behind other windows after use.</em></font></li>
 
 	<li><input type="radio" name="resultloc" value="ajax"
-	  [% IF is_ajax %]checked[% END %]/>
+	  [% IF is_ajax %]checked[% END %]>
 	Show them inside the active source browsing window
 	(requires JavaScript enabled)
 	</li>
       </ol>
+      </p>
       <p>
 	(Cookies need to be enabled for LXR preferences to take effect.)
       </p>

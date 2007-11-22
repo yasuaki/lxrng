@@ -50,6 +50,7 @@ sub new {
 
     if ($$self{'config'}) {
 	$$self{'release'} ||= $$self{'config'}{'ver_default'};
+	$$self{'release'} ||= $$self{'config'}{'ver_list'}[0];
     }
 
     return $self;

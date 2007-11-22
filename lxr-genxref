@@ -8,7 +8,7 @@ use lib "$FindBin::Bin/lib";
 
 use LXRng ROOT => $FindBin::Bin;
 use LXRng::Context;
-use LXRng::Lang qw(C);
+use LXRng::Lang;
 use LXRng::Index;
 use LXRng::Parse::Simple;
 
@@ -234,11 +234,11 @@ my $tree = shift(@ARGV);
 my @versions = @ARGV;
 
 my $context = LXRng::Context->new('tree' => $tree);
+LXRng::Lang->init($context);
 
 my $index   = $context->config->{'index'};
 my $hash    = $context->config->{'search'};
 my $rep     = $context->config->{'repository'};
-
 
 sub inventory_release {
     my ($tree, $version) = @_;

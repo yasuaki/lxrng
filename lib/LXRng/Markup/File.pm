@@ -30,11 +30,9 @@ sub make_format_newline {
 	$line++;
 	$nl = safe_html($nl);
 
-	# id="<num>" is not valid XHTML 1.0, but it is an extremely
-	# handy shorthand for generating line numbers that don't
-	# affect cut-n-paste.
-	return qq{$nl<a id="L$line" name="L$line"></a>}.
-	    qq{<a href="$name#L$line" id="$line" class="line"></a>};
+	return qq{</span>$nl<li>}.
+	    qq{<a href="$name#L$line" class="line"><span></span></a>}.
+	    qq{<a id="L$line" name="L$line"></a><span class="line">};
     }
 }
 
@@ -98,7 +96,10 @@ sub format_code {
 sub format_raw {
     my ($self, $str) = @_;
 
-    return safe_html($str);
+    $str = safe_html($str);
+    $str =~ s((http://[^/\"]+(/[^\s\"]*|)[^.\,\)\>\"]))
+	(<a href="$1">$1</a>)g;
+    return $str;
 }
 
 sub markupfile {

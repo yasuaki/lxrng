@@ -1,17 +1,18 @@
 function popup_search(searchform) {
 	searchform = document.getElementById(searchform);
-	searchform.target = window.name + '-popup';
+	searchform.target = 'popup_' + window.name;
 	searchform.navtarget.value = window.name;
-	window.open('', window.name + '-popup',
-		'width=400,height=600,menubar=yes,status=yes,scrollbars=yes');
+	window.open('about:blank', 'popup_' + window.name,
+		'resizable,width=400,height=600,menubar=yes,status=yes,scrollbars=yes');
 	return true;
 }
 
 function popup_anchor() {
 	var anchor = this;
-	window.open('', window.name + '-popup',
-		'width=400,height=600,menubar=yes,status=yes,scrollbars=yes');
-	anchor.target = window.name + '-popup';
+	window.open('about:blank', 'popup_' + window.name,
+		'resizable,width=400,height=600,location=no,menubar=yes,scrollbars=yes'); 
+
+	anchor.target = 'popup_' + window.name;
 
 	if (anchor.href.indexOf("navtarget=") >= 0)
 		return true;
@@ -33,7 +34,7 @@ function navigate_here(searchform) {
 
 function window_unique(serial) {
 	if (!window.name)
-		window.name = 'lxr-source-' + serial;
+		window.name = 'lxr_source_' + serial;
 }
 
 function do_search(form) {
@@ -43,15 +44,15 @@ function do_search(form) {
 		res.innerHTML = '<div class="progress">Searching...</div>';
 	
 		pjx_search(['type__search',
-			    'search', 'v', 'tree__' + loaded_tree],
+			    'search', 'v', 'tree__' + loaded_tree, 'NO_CACHE'],
 			   ['search_results']);
 		return false;
 	}
 	else if (use_popup_navigation) {
-		form.target = window.name + '-popup';
+		form.target = 'popup_' + window.name;
 		form.navtarget.value = window.name;
-		reswin = window.open('', window.name + '-popup',
-			'width=400,height=600,menubar=yes,status=yes,scrollbars=yes');
+		reswin = window.open('about:blank', 'popup_' + window.name,
+			'resizable,width=400,height=600,location=no,menubar=yes,scrollbars=yes');
 	}
 	return true;
 }
@@ -118,7 +119,6 @@ function check_hash_navigation() {
 			hash_check = setTimeout('check_hash_navigation()', 50);
 		}
 		else {
-			// alert(location.hash + ' / ' + loaded_hash);
 			load_content();		
 		}
 	}
@@ -136,10 +136,16 @@ function load_file(tree, file, ver, line) {
 		clearTimeout(hash_check);
 	}
 
+	if ((pending_tree == tree) && (pending_file == file)) {
+		location.hash = location.hash.replace(/\#L\d+$/, '') +
+			'#L' + line;
+		check_hash_navigation();
+		return false;
+	}
+
+
 	var res = document.getElementById('content');
 
-	// TODO: check if file already loaded and perform only line
-	// location update.
 	res.innerHTML = '<div class="progress">Loading...</div>';
 	pending_line = line;
 	pending_tree = tree;
@@ -150,8 +156,13 @@ function load_file(tree, file, ver, line) {
 	else {
 		pending_ver = '';
 	}
-
-	pjx_load_file(['tree__' + tree, 'file__' + file, 'v__' + ver, 'line__' + line],
+	
+	if (!file)
+		file = '/';
+	if (line < 1)
+		line = 1;
+	pjx_load_file(['tree__' + tree, 'file__' + file, 'v__' + ver,
+		       'line__' + line, 'NO_CACHE'],
 		      [load_file_finalize]);
 	return false;
 }
@@ -183,8 +194,20 @@ function load_file_finalize(content) {
 	var pre = document.getElementById('file_contents');
 	if (pre && pre.className == 'partial') {
 		pjx_load_file(['tree__' + pending_tree, 'file__' + pending_file,
-			       'v__' + pending_ver, 'full__1'],
+			       'v__' + pending_ver, 'full__1', 'NO_CACHE'],
 			      [load_file_finalize]);
+	}
+
+	var print = document.getElementById('lxr_print');
+	var dirlist = document.getElementById('content_dir');
+	if (dirlist) {
+		print.style.display = 'none';
+	}
+	else {
+		var pform = document.getElementById('print_form');
+		pform.action = '../' + full_tree + '/+print=' + 
+			pending_file.replace(/^\/?/, '');
+		print.style.display = 'inline';
 	}
 
 	if (hash_check) {
@@ -211,7 +234,6 @@ function load_file_finalize(content) {
 	loaded_ver = pending_ver;
 	hash_check = setTimeout('check_hash_navigation()', 50);
 
-//	return;
 //	TODO: This really takes oodles of time.  Consider coding into html.
 	var i;
 	for (i = 0; i < document.links.length; i++) {
@@ -231,6 +253,9 @@ function load_file_finalize(content) {
 }
 
 function load_content() {
+	if (!use_ajax_navigation) {
+		return false;
+	}
 	var tree = location.hash.split('/', 1);
 	tree = tree[0].split(/[+]/);
 	var ver = tree[1] || '';
@@ -238,17 +263,16 @@ function load_content() {
 	var file = location.hash.replace(/^[^\/]*\/?/, '');
 	var line = file.replace(/.*\#L(\d+)/, '$1');
 	file = file.replace(/\#L\d+$/, '');
-
 	load_file(tree, file, ver, line);
 
-	pjx_releases(['tree__' + tree],
+	pjx_releases(['tree__' + tree, 'NO_CACHE'],
 		     [load_content_finalize]);
 }
 
 function load_content_finalize(content) {
 	var res = document.getElementById('ver_select');
 	res.innerHTML = content;
-	var verlist = document.getElementById('ver_list');
+	var verlist = document.getElementById('v');
 	verlist.value = pending_ver;
 }
 
@@ -274,6 +298,24 @@ function update_version(verlist, base_url, tree, defversion, path) {
 	}
 }
 
+function next_version() {
+	var verlist = document.getElementById('v');
+	if (verlist.selectedIndex > 0) {
+		verlist.selectedIndex = verlist.selectedIndex - 1;
+		update_version(verlist, '', '', '', '');
+	}
+	return false;
+}
+
+function previous_version() {
+	var verlist = document.getElementById('v');
+	if (verlist.selectedIndex < verlist.length - 1) {
+		verlist.selectedIndex = verlist.selectedIndex + 1;
+		update_version(verlist, '', '', '', '');
+	}
+	return false;
+}
+
 function popup_prepare(serial) {
 	window_unique(serial);
 	var i;
@@ -293,8 +335,6 @@ function ajax_lookup_anchor(event, anchor) {
 	if (!anchor)
 		anchor = this;
 	
-	// TODO: Fix
-//	lookup = anchor.href.replace(/^(http:.*?lxr\/[+]ajax\/|)/, '');
 	lookup = anchor.href.replace(/^(http:.*?\/.*?[+][*]\/|)/, '');
 
 	var lvar = document.getElementById('ajax_lookup');
@@ -304,7 +344,7 @@ function ajax_lookup_anchor(event, anchor) {
 	res.style.display = 'block';
 	res.innerHTML = '<div class="progress">Searching...</div>';
 
-	pjx_search(['ajax_lookup', 'v', 'tree__' + loaded_tree],
+	pjx_search(['ajax_lookup', 'v', 'tree__' + loaded_tree, 'NO_CACHE'],
 		   ['search_results']);
 	return false;
 }

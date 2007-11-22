@@ -1,31 +1,34 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    [% IF is_ajax %]
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <script type="text/javascript">
-      var tree = location.hash.match(/^#([^/+]+)([+][^/]*|)/);
-      if (tree) {
+      var use_ajax_navigation = [% IF is_ajax %]1[% ELSE %]0[% END %];
+      var use_popup_navigation = [% IF is_popup %]1[% ELSE %]0[% END %];
+      [% IF is_ajax %]
+
+      var startup_tree = location.hash.match(/^#([^/+]+)([+][^/]*|)/);
+      if (startup_tree) {
 	var base = '[% base_url %]';
-	base = base.replace(/\/ajax[+][*]/, '/' + tree[1] + '+*');
-  	document.write('<base href="' + base + '" />');
+	base = base.replace(/\/ajax[+][*]/, '/' + startup_tree[1] + '+*');
+  	document.write('<base href="' + base + '">');
       }
       else {
-  	document.write('<base href="[% base_url %]" />');
+  	document.write('<meta http-equiv="Refresh" content="1;+trees">');
+	use_ajax_navigation = 0;
       }
+      [% END %]
     </script>
-    [% ELSE %]
-    <base href="[% base_url %]" />
+    [% IF !is_ajax %]
+    <base href="[% base_url %]">
     [% END %]
     <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
-    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng" />
+    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng">
 
     [% javascript %]
 
     <script type="text/javascript">
-      var use_ajax_navigation=[% IF is_ajax %]1[% ELSE %]0[% END %];
-      var use_popup_navigation=[% IF is_popup %]1[% ELSE %]0[% END %];
     </script>
 
     <title>LXR [% context.tree -%]/
@@ -48,30 +51,36 @@
 	  %]<a href="[% elem.path %]">[% elem.node %]</a>[%
 	  END %]
 	</span>
-	<img src="../../gfx/rolldown.png" />
-	<!-- TODO: appears to break w. ajax nav. -->
-	[% IF node.name.match('[^/]$') %]
-	<form action="+print=[% node.name %]" method="post">
-	  <button type="submit" class="print"><img src="../../gfx/print.png"></button>
-	</form>
-	[% END %]
+	<img src="../../gfx/rolldown.png" alt="History">
+        <span id="lxr_print"
+          [% IF is_ajax || node.name.match('/$') %]style="display: none;"[% END %]>
+	  <form action="+print=[% node.name %]" method="post" id="print_form">
+	    <button type="submit" class="print">
+      	      <img src="../../gfx/print.png" alt="Print">
+            </button>
+	  </form>
+        </span>
       </span>
 	
       <div class="lxr_menu">
 	<span class="lxr_version">
-	  <img src="../../gfx/left.png" alt="&lt;&lt;"/>
+	  <a [% IF is_ajax %]href="#" onclick="return previous_version();"[% ELSE %]
+	     href="../[% context.tree %]+[% ver_prev %]/[% node.name %]"[% END %]>
+	    <img src="../../gfx/left.png" alt="&lt;&lt;"></a>
 	  <form action="[% node.name %]" method="get">
 	    <span id="ver_select">
 	      [% INCLUDE release_select.tt2, context = context %]
 	    </span>
 	  </form>
-	  <img src="../../gfx/right.png" alt="&gt;&gt;"/>
+	  <a [% IF is_ajax %]href="#" onclick="return next_version();"[% ELSE %]
+	     href="../[% context.tree %]+[% ver_next %]/[% node.name %]"[% END %]>
+	    <img src="../../gfx/right.png" alt="&gt;&gt;"></a>
 	</span>
 
 	<span class="lxr_search">
 	  <form action="+search" method="post" onsubmit="return do_search(this);">
-	    <input type="hidden" name="navtarget" value="" />
-	    <input type="text" name="search" id="search" />
+	    <input type="hidden" name="navtarget" value="">
+	    <input type="text" name="search" id="search">
 	    <button type="submit">Search</button>
 	  </form>
 	</span>
@@ -83,8 +92,8 @@
 	  </a>
 	</span>
       </div>
-      <form action="+ajax" method="post" onsubmit="return false;">
-	<input type="hidden" name="ajax_lookup" id="ajax_lookup" value="" />
+      <form action="ajax+*" method="post" onsubmit="return false;">
+	<input type="hidden" name="ajax_lookup" id="ajax_lookup" value="">
       </form>
 
       <div class="headingbottom"></div>

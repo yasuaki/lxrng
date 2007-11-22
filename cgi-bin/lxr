@@ -10,7 +10,7 @@ use IO::Handle;
 
 use LXRng ROOT => "$FindBin::Bin/..";
 use LXRng::Context;
-use LXRng::Lang qw(C);
+use LXRng::Lang;
 use LXRng::Parse::Simple;
 use LXRng::Markup::File;
 use LXRng::Markup::Dir;
@@ -84,19 +84,21 @@ sub print_markedup_file {
 	    my $focus = $context->param('line') || 0;
 	    $focus = 0 if $context->param('full');
 	    my $class = $focus ? 'partial' : 'full';
-	    print("<pre id=\"file_contents\" class=\"$class\">");
+	    my $start = $focus > 5 ? " start=".($focus - 5) : "";
+	    print("<pre id=\"file_contents\" class=\"$class\"><ol$start><span>");
 	    while (<$cache>) {
 		next if $focus and $. < $focus - 5;
 		print($_);
 		last if $focus and $. > $focus + 70;
 	    }
-	    print("</pre>");
+	    print("</span></ol></pre>");
 	    close($cache);
 	}
 	else {
 	    my $cache;
 	    open($cache, '>', $cfile) if $cfile;
 	    my $handle = $node->handle();
+	    LXRng::Lang->init($context);
 	    my $lang   = LXRng::Lang->new($node);
 	    my $parse  = LXRng::Parse::Simple->new($handle, 8,
 						   @{$lang->parsespec});
@@ -109,17 +111,25 @@ sub print_markedup_file {
 	    # time it's needed, but requires a bit of fiddling with
 	    # perlio and the streams to get right.  Also messes up
 	    # partial transfers.
-	    print("<pre id=\"file_contents\" class=\"full\">");
+	    print("<pre id=\"file_contents\" class=\"full\"><ol><span>");
 	    while (1) {
 		my @frags = $markup->markupfile($subst, $parse);
 		last unless @frags;
 		print(@frags);
 		print($cache @frags) if $cache;
 	    }
-	    print("</pre>\n");
+	    print("</span></ol></pre>\n");
 	}
     }
 }
+
+sub print_tree_list {
+    my ($context, $template) = @_;
+
+    $template->process('tree_list.tt2',
+		       {'context' => $context})
+		or die $template->error();
+}    
 
 sub print_release_list {
     my ($context, $template) = @_;
@@ -147,28 +157,31 @@ sub source {
 	    print($query->header(-type => 'text/html',
 				 -charset => 'utf-8'));
 
-	    my $base = $context->base_url(1);
-	    $base =~ s,/*$,/ajax+*/,;
+	    if ($context->release eq 'trees') {
+		print_tree_list($context, $template);
+	    }
+	    else {
+		my $base = $context->base_url(1);
+		$base =~ s,/*$,/ajax+*/,;
 
-	    $template->process('main.tt2',
-			       {'context'    => $context,
-				'base_url'   => $base,
-				'javascript' => $pjx->show_javascript(),
-				'is_ajax' => 1})
-		or die $template->error();
+		$template->process('main.tt2',
+				   {'context'    => $context,
+				    'base_url'   => $base,
+				    'javascript' => $pjx->show_javascript(),
+				    'is_ajax' => 1})
+		    or die $template->error();
+	    }
 	}
 	return;
     }
 
-    my $gzip = do_compress_response($query);
+    if ($context->tree eq '') {
+	print($query->header(-type => 'text/html',
+			     -charset => 'utf-8'));
+	print_tree_list($context, $template);
+	return;
+    }
 
-    # history cookie
-
-    print($query->header(-type => 'text/html',
-			 -charset => 'utf-8',
-			 $gzip ? (-content_encoding => 'gzip') : ()));
-
-    binmode(\*STDOUT, ":gzip") if $gzip;
 
     my $ver = $context->release;
     my $rep = $context->config->{'repository'};
@@ -177,10 +190,41 @@ sub source {
     my $node = $rep->node($context->path, $ver);
     die "Node not found: ".$context->path." ($ver)" unless $node;
 
+    my $gzip = do_compress_response($query);
+
+    my @history = $query->cookie('lxr_history_'.$context->tree);
+    if ($node->isa('LXRng::Repo::File')) {
+	my $h = $context->path.'+'.$ver;
+	@history = ($h, grep { $_ ne $h } @history);
+	splice(@history, 15) if @history > 15;
+    }
+
+    my $lxr_hist = $query->cookie(-name    => 'lxr_history_'.$context->tree,
+				  -values  => \@history,
+				  -expires => '+1y');
+
+    print($query->header(-type => 'text/html',
+			 -charset => 'utf-8',
+			 -cookie => $lxr_hist,
+			 $gzip ? (-content_encoding => 'gzip') : ()));
+
+    binmode(\*STDOUT, ":gzip") if $gzip;
+
+    my @rels = @{$context->all_releases()};
+    unshift(@rels, $rels[0]);
+    while (@rels > 2 and $rels[1] ne $context->release) {
+	shift(@rels);
+    }
+
+    my $ver_next = @rels > 1 ? $rels[0] : $context->release;
+    my $ver_prev = @rels > 2 ? $rels[2] : $context->release;
+
     my %template_args = (%{$template_extra_args || {}},
 			 'context'    => $context,
 			 'tree'	      => $context->tree,
 			 'node'       => $node,
+			 'ver_prev'   => $ver_prev,
+			 'ver_next'   => $ver_next,
 			 'base_url'   => $context->base_url,
 			 'javascript' => $pjx->show_javascript());
 
@@ -293,7 +337,7 @@ sub search {
 	    $$ident[1] = $LXRng::Lang::deftypes{$$ident[1]};
 	    $$ident[5] &&= $LXRng::Lang::deftypes{$$ident[5]};
 
-	    use Data::Dumper;
+	    # use Data::Dumper;
 	    # warn Dumper($symname, $symid, $ident, $refs);
 	    $template_args{'ident_res'} = {'query' => $symname,
 					   'ident' => $ident,
@@ -359,8 +403,10 @@ sub handle_ajax_request {
     my ($query, $context, $template) = @_;
     my $gzip = do_compress_response($query);
     
+    $query->no_cache(1);
     print($query->header(-type => 'text/html',
 			 -charset => 'utf-8',
+			 -cache-control => 'no-store, no-cache, must-revalidate',
 			 $gzip ? (-content_encoding => 'gzip') : ()));
 
     binmode(\*STDOUT, ":gzip") if $gzip;
@@ -458,6 +504,7 @@ sub generate_pdf {
 	'~'	=> '\~{}',	'<'	=> "\$<\$",
 	'>'	=> "\$>\$",	"\\"	=> "\$\\backslash\$",
 	'-'	=> '\dash{}',
+# These are latin1-replacements, and interact badly with utf8...
 	"\242"	=> '?',		"\244"	=> '?',
 	"\245"	=> '?',		"\246"	=> '?',
 	"\252"	=> "\$\252\$",	"\254"	=> "\$\254\$",
@@ -465,7 +512,8 @@ sub generate_pdf {
 	"\261"	=> "\$\261\$",	"\262"	=> "\$\262\$",
 	"\263"	=> "\$\263\$",	"\265"	=> "\$\265\$",
 	"\271"	=> "\$\271\$",	"\272"	=> "\$\272\$",
-	"\327"	=> "\$\327\$",	"\367"	=> "\$\367\$");
+	"\327"	=> "\$\327\$",	"\367"	=> "\$\367\$",
+		     );
 
     my $tspecials = join('', map { quotemeta($_) } keys(%tspecials));
 
@@ -476,6 +524,7 @@ sub generate_pdf {
     die "No such file" unless $node;
 
     my $handle = $node->handle();
+    LXRng::Lang->init($context);
     my $lang   = LXRng::Lang->new($node);
     my $parse  = LXRng::Parse::Simple->new($handle, 8,
 					   @{$lang->parsespec});
@@ -543,7 +592,8 @@ sub generate_pdf {
 		$cont  = 1;
 	    }
 
-	    $part =~ s/([$tspecials])/$tspecials{$1}/ge;
+	    $part =~ s(([$tspecials\0-\010\013\014\016-\037\200-\240]))
+		(exists $tspecials{$1} ? $tspecials{$1} : '?')ge;
 	    
 	    if ($btype eq 'code') {
 		$part =~ s/$resre/\\textbf{$1}/g if $resre;

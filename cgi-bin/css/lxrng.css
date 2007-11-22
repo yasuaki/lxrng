@@ -1,4 +1,14 @@
-/* http://devnull.tagsoup.com/fixed/horizontal.html */
+body { 
+	font-family: sans-serif;
+	margin-top: 3px;
+	margin-left: 3px;
+	margin-right: 3px;
+}
+
+span.lxr_title {
+	float: left;
+	vertical-align: middle;
+}
 
 span.lxr_l {
 	text-transform: uppercase;
@@ -19,13 +29,10 @@ span.lxr_r {
 	border-width: 1px;
 }
 
-span.lxr_title {
-	float: left;
-}
-
 span.lxr_menu {
 /*	float: right; */
 }
+
 div.lxr_menu {
 	float: right;
 }
@@ -35,9 +42,18 @@ span.lxr_search {
 	margin-left: 5px;
 	padding-left: 5px;
 	margin-right: 5px;
-/*	border-left: solid;
-	border-width: 1px; */
+	border-left: solid;
+	border-width: 1px;
 }
+
+span.lxr_search input#search {
+	width: 8em;
+}
+
+span.lxr_search button {
+	border: solid 1px;
+}
+
 span.lxr_prefs {
 	font-weight: normal;
 	margin-left: 5px;
@@ -57,6 +73,7 @@ span.lxr_version {
 body.full div.search_results {
 	background: #F0F0F0;
 	z-index: 3;
+/*	position: absolute; */
 	position: fixed;
 	right: 3px;
 	top: 35px;
@@ -87,34 +104,54 @@ span.close-button {
 	margin-right: 3px;
 }
 
-a.line:before {
+/* a.line:before {
 	content: attr(id);
-}	
+} */
 
 a.line {
 	position: absolute;
 	top: auto;
 	left: 0px;
-	width: 4.5ex;
+	height: 2ex;
+	width: 5.5ex;
 	text-align: right;
-	background: #e0e0e0;
 
 	border: solid;
 	border-width: 1px;
 	border-color: #000000;
 	margin-left: 3px;
-	padding-right: 5px;
 }
 
-body {
-	margin-top: 3px;
-	margin-left: 3px;
-	margin-right: 3px;
-	overflow: scroll;
+a.line span { 
+	position: absolute;
+	top: auto;
+	height: 2ex;
+	left: 0px;
+	background: #6c6c6c;
+	filter: alpha(opacity=10);
+	moz-opacity: .10;
+	opacity: .10;
+	width: 5.5ex;
+}
+
+
+pre#file_contents li { 
+	color: blue;
+}
+
+span.line {
+	position: absolute;
+	left: 7ex;
+	color: black;
+	white-space: pre;
 }
 
 pre {
-	margin-left: 6ex;
+	margin-left: 1.5ex;
+}
+
+a img { 
+	border: 0px;
 }
 
 div.headingtop {
@@ -156,19 +193,6 @@ button.print {
 	background: #F0F0F0;
 }
 
-
-table.query {
-	width: 100%;
-}
-
-table.params {
-	width: 100%;
-}
-
-table.directory {
-	width: 100%;
-}
-
 table.directory td.name {
 	width: 30ex;
 }	
@@ -208,7 +232,7 @@ span.comment {
 
 span.string {
 	font-style: italic;
-	color: red;
+	color: green;
 }
 
 div.find {
@@ -282,3 +306,20 @@ div.error {
 form {
 	display: inline;
 }
+
+div.footer { 
+	margin-top: 30px;
+	border-top: solid;
+	border-width: 1px;
+	padding-top: 10px;
+	font-style: italic;
+	text-align: center;
+	font-size: 80%;
+}
+
+div.subfooter { 
+	font-style: italic;
+	text-align: center;
+	font-size: 80%;
+}
+
