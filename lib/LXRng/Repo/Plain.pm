@@ -8,6 +8,7 @@ use LXRng::Repo::Plain::Directory;
 sub new {
     my ($class, $root) = @_;
 
+    $root .= '/' unless $root =~ /\/$/;
     return bless({root => $root}, $class);
 }
 
