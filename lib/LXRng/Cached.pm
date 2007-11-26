@@ -13,9 +13,10 @@ BEGIN {
        };
     if ($@ eq '') {
 	$memcached = Cache::Memcached->new({
-	    'servers' => ['127.0.0.1:11211']});
+	    'servers' => ['127.0.0.1:11211'],
+	    'namespace' => 'lxrng'});
 	$memcached = undef 
-	    unless ($memcached->set(':lxrng_caching' => 1))
+	    unless ($memcached->set(':caching' => 1))
     }
 }
 
@@ -35,23 +36,22 @@ sub LXRng_Cached_cached(&;@) {
     if ($LXRng::Cached::memcached) {
 	my ($pkg, $file, $line) = caller(0);
 	my $params;
-	if (@args > 0) {
-	    $params = Storable::freeze(\@args);
-	}
-	else {
+	unless (@args > 0) {
 	    my @caller = caller(1);
-	    $params = Storable::freeze(\@DB::args);
+	    @args = map { UNIVERSAL::can($_, 'cache_key') ? $_->cache_key : $_
+			  } @DB::args;
 	}
-	my $key = ':lxrng:'.
-	    Digest::SHA1::sha1_hex(join("\0", $file, $line, $params));
+	$params = Storable::freeze(\@args);
+
+	my $key = Digest::SHA1::sha1_hex(join("\0", $file, $line, $params));
 	my $val = $LXRng::Cached::memcached->get($key);
 	unless ($val) {
 	    $val = [$func->()];
-	    $LXRng::Cached::memcached->set($key, $val);
-	    warn "cache miss for $key";
+	    $LXRng::Cached::memcached->set($key, $val, 3600);
+	    warn "cache miss for $key (".join(":", $file, $line, @args).")\n";
 	}
 	else {
-	    warn "cache hit for $key";
+	    warn "cache hit for $key\n";
 	}
 	return @$val;
     }

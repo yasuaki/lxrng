@@ -58,7 +58,7 @@ sub listing {
 	    }
 	}
 	\@list;
-    } $$self{'node'};
+    } $$self{'node'}->cache_key;
 }
 
 1;

@@ -30,6 +30,12 @@ sub new {
     return bless({root => $root, %args}, $class);
 }
 
+sub cache_key {
+    my ($self) = @_;
+
+    return $$self{'root'};
+}
+
 sub _release_timestamp {
     my ($self, $release) = @_;
 

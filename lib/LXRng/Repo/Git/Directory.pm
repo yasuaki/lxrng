@@ -12,6 +12,12 @@ sub new {
 		 $class);
 }
 
+sub cache_key {
+    my ($self) = @_;
+
+    return $$self{'repo'}->cache_key.":".$$self{'ref'};
+}
+
 sub time {
     my ($self) = @_;
 
