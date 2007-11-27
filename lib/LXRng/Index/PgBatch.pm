@@ -146,9 +146,10 @@ sub _prime_symbol_cache {
 }
 
 sub _add_usage {
-    my ($self, $file_id, $line, $symbol_id) = @_;
+    my ($self, $file_id, $symbol_id, $lines) = @_;
     
-    push(@{$self->_cache('usage')}, "$file_id\t$symbol_id\t$line\n");
+    push(@{$self->_cache('usage')},
+	 "$file_id\t$symbol_id\t\{".join(",", @$lines)."}\n");
 
     return 1;
 }

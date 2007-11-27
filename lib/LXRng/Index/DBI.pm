@@ -334,19 +334,6 @@ sub _symbols_by_file {
     return \%res;
 }
 
-sub _add_usage {
-    my ($self, $file_id, $line, $symbol_id) = @_;
-    
-    my $dbh = $self->dbh;
-    my $pre = $self->prefix;
-    my $sth = $$self{'sth'}{'_add_usage'} ||=
-	$dbh->prepare(qq{insert into ${pre}usage(id_rfile, line, id_symbol)
-			     values (?, ?, ?)});
-    $sth->execute($file_id, $line, $symbol_id);
-
-    return 1;
-}
-
 sub _usage_by_file {
     my ($self, $rfile_id) = @_;
 
@@ -455,21 +442,28 @@ sub get_symbol_usage {
     return undef unless $symid =~ /^\d+$/s;
     my $sth =
 	$dbh->prepare(qq{
-	    select u.id_rfile, u.line
-		from ${pre}usage u, ${pre}filereleases fr
+	    select f.path, u.lines
+		from ${pre}usage u, ${pre}filereleases fr,
+			${pre}files f, ${pre} revisions r
 		where u.id_symbol = $symid
 		and u.id_rfile = fr.id_rfile and fr.id_release = ?
+		and u.id_rfile = r.id and r.id_file = f.id
 		limit 1000});
 
     $sth->execute($rel_id);
     my $res = $sth->fetchall_arrayref();
     $sth->finish();
 
-    return $res;
+    my %rlines;
+    foreach my $r (@$res) {
+	$rlines{$$r[0]} = [$$r[1] =~ /(\d+),?/g];
+    }
+
+    return \%rlines;
 }
 
 sub get_identifier_info {
-    my ($self, $ident, $rel_id) = @_;
+    my ($self, $usage, $ident, $rel_id) = @_;
 
     my $dbh = $self->dbh;
     my $pre = $self->prefix;
@@ -499,15 +493,16 @@ sub get_identifier_info {
 	    $sth->fetchrow_array();
     $sth->finish();
 
-    my $refs = {$rfile_id => $path};
-    $self->get_referring_files($rel_id, $rfile_id, $refs);
-    my $usage = $self->get_symbol_usage($rel_id, $symid);
+    my $incs = {$rfile_id => $path};
+    $self->get_referring_files($rel_id, $rfile_id, $incs);
+    my %paths; @paths{values %$incs} = ();
 
+    my $refs = $usage->get_symbol_usage($rel_id, $symid);
     my %reflines;
-    foreach my $u (@$usage) {
-	next unless $$refs{$$u[0]};
-	$reflines{$$refs{$$u[0]}} ||= [];
-	push(@{$reflines{$$refs{$$u[0]}}}, $$u[1]);
+    my ($p, $l);
+    while (($p, $l) = each %$refs) {
+	next unless exists $paths{$p};
+	$reflines{$p} = $l;
     }
 
     return ($symname, $symid, 

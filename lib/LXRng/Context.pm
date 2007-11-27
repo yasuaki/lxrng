@@ -41,6 +41,7 @@ sub new {
 	    unless ref($config[0]) eq 'HASH' and exists($config[0]{$tree});
 
 	$$self{'config'} = $config[0]{$tree};
+	$$self{'config'}{'usage'} ||= $$self{'config'}{'index'};
     }
 
     if (exists $$self{'params'}{'v'} and $$self{'params'}{'v'}) {

@@ -154,9 +154,9 @@ sub init_db {
     $dbh->do(qq{
 	create table ${pre}usage
 	    (
-	     id_rfile		int references ${pre}revisions(id) deferrable,
-	     id_symbol		int references ${pre}symbols(id) deferrable,
-	     line		int
+	     id_rfile		int,
+	     id_symbol		int,
+	     lines		int[]
 	     )
 	}) or die($dbh->errstr);
 
@@ -406,6 +406,20 @@ sub _add_ident {
 
     return $id;
 }
+
+sub _add_usage {
+    my ($self, $file_id, $symbol_id, $lines) = @_;
+    
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+    my $sth = $$self{'sth'}{'_add_usage'} ||=
+	$dbh->prepare(qq{insert into ${pre}usage(id_rfile, id_symbol, lines)
+			     values (?, ?, ?)});
+    $sth->execute($file_id, $symbol_id, '{'.join(',', @$lines).'}');
+
+    return 1;
+}
+
 
 sub DESTROY {
     my ($self) = @_;

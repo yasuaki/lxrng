@@ -144,13 +144,12 @@ sub symbols_by_file {
 }
 
 sub add_usage {
-    my ($self, $file_id, $line, $symbol) = @_;
+    my ($self, $doc, $file_id, $sym_id, $lines) = @_;
 
-    my $sym_id = $self->symbol_id($symbol, 1);
-    
-    return $self->_add_usage($file_id, $line, $sym_id);
+    return $self->_add_usage($file_id, $sym_id, $lines);
 }
 
+# TODO: What functionality actually uses this?  Can it be removed?
 sub usage_by_file {
     my ($self, $tree, $release, $path) = @_;
 

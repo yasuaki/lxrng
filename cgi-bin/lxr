@@ -331,8 +331,9 @@ sub search {
 					  'idents' => \@cooked};
 	}
 	if ($type eq 'ident') {
+	    my $usage  = $context->config->{'usage'};
 	    my ($symname, $symid, $ident, $refs) =
-		$index->get_identifier_info($find, $rel_id);
+		$index->get_identifier_info($usage, $find, $rel_id);
 
 	    $$ident[1] = $LXRng::Lang::deftypes{$$ident[1]};
 	    $$ident[5] &&= $LXRng::Lang::deftypes{$$ident[5]};
