@@ -32,7 +32,7 @@ sub transaction {
 
 	# Only occasional synchronization if we're inside another
 	# transaction.
-	if ($self->{'writes'}++ % 997 == 0) {
+	if ($self->{'writes'}++ % 491 == 0) {
 	    $self->flush();
 	    $self->dbh->commit();
 	}
@@ -44,6 +44,7 @@ sub new {
 
     my $self = $class->SUPER::new(@args);
     $$self{'writes'} = 0;
+    $$self{'rows'} = 0;
 
     return $self;
 }
@@ -57,19 +58,24 @@ sub flush {
 
     my $pre = $self->prefix;
     $self->dbh->commit() unless $self->dbh->{AutoCommit};
-    my $pid = fork();
+    my $pid = open($$self{'flush_pipe'}, "-|");
     die("fork failed: $!") unless defined($pid);
     if ($pid == 0) {
 	$SIG{'INT'}  = 'IGNORE';
 	$SIG{'QUIT'} = 'IGNORE';
 	$SIG{'TERM'} = 'IGNORE';
+	$SIG{'PIPE'} = 'IGNORE';
+	undef $$self{'flush_pipe'};
 
 	my $i = 0;
-	$$self{'dbh'} = undef;
-	foreach my $table (qw(symbols identifiers usage)) {
-	    if (exists($$self{'cache'}{$table})) {
+	my $cache = $$self{'cache'};
+	$$self{'dbh'}->{InactiveDestroy} = 1 if $$self{'dbh'};
+	undef $$self{'cache'};
+	undef $$self{'dbh'};
+	foreach my $table (qw(symbols identifiers usage includes)) {
+	    if (exists($$cache{$table})) {
 		$self->dbh->do(qq{copy $pre$table from stdin});
-		foreach my $l (@{$$self{'cache'}{$table}}) {
+		foreach my $l (@{$$cache{$table}}) {
 		    $i++;
 		    $self->dbh->pg_putline($l);
 		}
@@ -77,25 +83,41 @@ sub flush {
 	    }
 	}
 	$self->dbh->commit() unless $self->dbh->{AutoCommit};
-	$self->dbh->do(q(analyze)) if $i > 500000;
+	# Analyze after first 50k rows, then for every 3M row.
+	$self->dbh->do(q(analyze)) if
+	    (($$self{'rows'} % 3000000) + $i > 3000000) or
+	    (($$self{'rows'} < 50000) and ($$self{'rows'} + $i > 50000));
+
 	$self->dbh->disconnect();
-	warn "\n*** index: flushed $i rows\n";
+	print("$i\n");
+	close(STDOUT);
 	kill(9, $$);
     }
     $$self{'flush_pid'} = $pid;
+    foreach my $table (%{$$self{'cache'}}) {
+	@{$$self{'cache'}{$table}} = ();
+    }
+    %{$$self{'cache'}} = ();
     delete($$self{'cache'});
-    warn "\n*** index: flushing in background\n";
+
+    warn "*** index: flushing in background\n";
 }
 
 sub _flush_wait {
     my ($self) = @_;
 
-    return unless $$self{'flush_pid'};
-    waitpid($$self{'flush_pid'}, WNOHANG); # Reap zombies
-    return unless kill(0, $$self{'flush_pid'});
+    return unless $$self{'flush_pipe'};
 
-    warn "\n*** index: waiting for running flush to complete...\n";
+    warn "*** index: waiting for running flush to complete...\n";
     $self->dbh->commit() unless $self->dbh->{AutoCommit};
+    my $rows;
+    if (sysread($$self{'flush_pipe'}, $rows, 1024) > 0) {
+	$rows += 0;
+	$$self{'rows'} += $rows;
+	warn "*** index: flushed $rows rows\n";
+    }
+    $$self{'flush_pipe'}->close();
+    undef $$self{'flush_pipe'};
     waitpid($$self{'flush_pid'}, 0);
 }
 
@@ -202,6 +224,13 @@ sub _get_symbol {
 
 sub DESTROY {
     my ($self) = @_;
+
+    if ($$self{'dbh'} and ($$self{'dbh_pid'} != $$)) {
+	# Don't flush or disconnect inherited db handle.
+	$$self{'dbh'}->{InactiveDestroy} = 1;
+	undef $$self{'dbh'};
+	return;
+    }
 
     if ($$self{'writes'} > 0) {
 	$self->flush();

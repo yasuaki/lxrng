@@ -8,12 +8,16 @@ use base qw(LXRng::Index::DBI);
 sub dbh {
     my ($self) = @_;
 
-    $$self{'dbh'} ||= DBI->connect('dbi:Pg:'.$$self{'db_spec'},
-				   $$self{'db_user'}, $$self{'db_pass'},
-				   {AutoCommit => 1,
-				    RaiseError => 1})
+    return $$self{'dbh'} if $$self{'dbh'};
+
+    $$self{'dbh'} = DBI->connect('dbi:Pg:'.$$self{'db_spec'},
+				 $$self{'db_user'}, $$self{'db_pass'},
+				 {AutoCommit => 1,
+				  RaiseError => 1,
+				  pg_server_prepare => 1})
 	or die($DBI::errstr);
-    
+    $$self{'dbh_pid'} = $$;
+
     return $$self{'dbh'};
 }
 
@@ -425,9 +429,15 @@ sub DESTROY {
     my ($self) = @_;
 
     if ($$self{'dbh'}) {
-	$$self{'dbh'}->rollback();
-	$$self{'dbh'}->disconnect();
-	delete($$self{'dbh'});
+	if ($$self{'dbh_pid'} != $$) {
+	    $$self{'dbh'}->{InactiveDestroy} = 1;
+	    undef $$self{'dbh'};
+	}
+	else {
+	    $$self{'dbh'}->rollback();
+	    $$self{'dbh'}->disconnect();
+	    delete($$self{'dbh'});
+	}
     }
 }
 
