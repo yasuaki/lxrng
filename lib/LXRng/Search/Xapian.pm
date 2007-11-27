@@ -35,11 +35,23 @@ sub new_document {
     return $doc;
 }
 
+sub get_document {
+    my ($self, $doc_id) = @_;
+
+    return $self->wrdb->get_document($doc_id);
+}
+
+sub save_document {
+    my ($self, $doc_id, $doc) = @_;
+
+    return $self->wrdb->replace_document($doc_id, $doc);
+}
+
 sub add_document {
     my ($self, $doc, $rel_ids) = @_;
    
     foreach my $r (@$rel_ids) {
-	$doc->add_term('__@@LXRREL_'.$r);
+	$doc->add_term('__@@rel_'.$r);
     }
     my $doc_id = $self->wrdb->add_document($doc);
     $self->{'writes'}++;
@@ -55,7 +67,7 @@ sub add_release {
     my $termend = $doc->termlist_end;
     my $changes = 0;
     foreach my $r (@$rel_ids) {
-	my $reltag = '__@@LXRREL_'.$r;
+	my $reltag = '__@@rel_'.$r;
 	my $term = $doc->termlist_begin;
 	$term->skip_to($reltag);
 	if ($term ne $termend) {
@@ -97,7 +109,7 @@ sub search {
     my $query = $qp->parse_query($query);
     $query = Search::Xapian::Query
 	->new(OP_FILTER, $query, 
-	      Search::Xapian::Query->new('__@@LXRREL_'.$rel_id));
+	      Search::Xapian::Query->new('__@@rel_'.$rel_id));
 
     my $enq = $db->enquire($query);
 
@@ -115,7 +127,7 @@ sub search {
 	my %lines;
 	my $hits = 0;
 	while ($term ne $termend) {
-	    if ($term !~ /^__\@\@LXR/) {
+	    if ($term !~ /^__\@\@rel/) {
 		my $pos = $db->positionlist_begin($match->get_docid(), $term);
 		my $posend = $db->positionlist_end($match->get_docid(), $term);
 		while ($pos ne $posend) {
@@ -145,6 +157,62 @@ sub search {
 
     return ($total, \@res);
 }
+
+sub add_usage {
+    my ($self, $doc, $file_id, $sym_id, $lines) = @_;
+
+    my $term = '__@@sym_'.$sym_id;
+    foreach my $line (@$lines) {
+	$doc->add_posting($term, $line);
+    }
+}
+
+sub get_symbol_usage {
+    my ($self, $rel_id, $sym_id) = @_;
+
+    my $db = Search::Xapian::Database->new($$self{'db_root'});
+    my $query = Search::Xapian::Query
+	->new(OP_FILTER,
+	      Search::Xapian::Query->new('__@@sym_'.$sym_id),
+	      Search::Xapian::Query->new('__@@rel_'.$rel_id));
+
+    warn $query;
+    my $enq = $db->enquire($query);
+
+    my $matches = $enq->get_mset(0, 1000);
+    my $total = $matches->get_matches_estimated();
+    my $size = $matches->size();
+
+    my %res;
+
+    my $match = $matches->begin();
+    my $i = 0;
+    while ($i++ < $size) {
+	my $term = $enq->get_matching_terms_begin($match);
+	my $termend = $enq->get_matching_terms_end($match);
+
+	while ($term ne $termend) {
+	    warn $term;
+	    if ($term !~ /^__\@\@rel/) {
+		my $pos = $db->positionlist_begin($match->get_docid(), $term);
+		my $posend = $db->positionlist_end($match->get_docid(), $term);
+		while ($pos ne $posend) {
+		    warn $match->get_docid();
+		    $res{$match->get_document->get_data()}{0+$pos} = 1;
+		    $pos++;
+		}
+	    }
+	    $term++;
+	}
+	$match++;
+    }
+
+    foreach my $r (keys %res) {
+	$res{$r} = [sort { $a <=> $b } keys %{$res{$r}}];
+    }
+    return \%res;
+}
+
 
 sub reset_db {
     my ($self) = @_;
