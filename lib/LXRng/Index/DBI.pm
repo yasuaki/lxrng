@@ -97,19 +97,6 @@ sub pending_files {
 			      and r.id_tree = ?
 			      and r.is_indexed = 'f')});
 
-# 	$dbh->prepare(qq{
-# 	    select rv.id, f.path, rv.revision 
-# 		from ${pre}files f, ${pre}revisions rv 
-# 		where rv.id_file = f.id
-# 		and not exists(select 1 from ${pre}filestatus fs
-# 			       where fs.id_rfile = rv.id
-# 			       and fs.indexed = 't'
-# 			       and fs.hashed = 't'
-# 			       and fs.referenced = 't')
-# 		and exists(select 1 from ${pre}filereleases fr, ${pre}releases r
-# 			   where fr.id_rfile = rv.id
-# 			   and fr.id_release = r.id
-# 			   and r.id_tree = ?)});
     if ($sth->execute($tree_id) > 0) {
 	return $sth->fetchall_arrayref();
     }
@@ -478,11 +465,6 @@ sub get_identifier_info {
 		${pre}symbols s, ${pre}revisions r, ${pre}files f
 		where i.id = ? and i.id_symbol = s.id 
 		and i.id_rfile = r.id and r.id_file = f.id});
-
-#	    select i.id_rfile, f.path, i.line, i.type, i.context, s.id, s.name
-#		from identifiers i, symbols s, revisions r, files f
-#		where i.id = ? and i.id_symbol = s.id 
-#		and i.id_rfile = r.id and r.id_file = f.id});
 
     unless ($sth->execute($ident) == 1) {
 	return undef;
