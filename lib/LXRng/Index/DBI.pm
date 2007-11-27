@@ -17,7 +17,7 @@ sub transaction {
 	# AutoCommit state.
 	$code->();
     }
-    $self->dbh->commit();
+    $self->dbh->commit() unless $self->dbh->{AutoCommit};
 }
 
 sub _to_task {
