@@ -62,6 +62,8 @@ sub revision {
 sub phys_path {
     my ($self) = @_;
 
+    return $$self{'phys_path'} if exists $$self{'phys_path'};
+
     my $tmpdir = tempdir() or die($!);
     open(my $phys, ">", $tmpdir.'/'.$self->node) or die($!);
 
@@ -73,8 +75,9 @@ sub phys_path {
     close($handle);
     close($phys) or die($!);
     
-    return LXRng::Repo::TmpFile->new(dir => $tmpdir,
-					node => $self->node);
+    return $$self{'phys_path'} = 
+	LXRng::Repo::TmpFile->new(dir => $tmpdir,
+				  node => $self->node);
 }
 
 1;
