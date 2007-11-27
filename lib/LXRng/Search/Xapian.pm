@@ -19,7 +19,11 @@ sub new {
 sub wrdb {
     my ($self) = @_;
 
-    return $$self{'wrdb'} ||= Search::Xapian::WritableDatabase
+    return $$self{'wrdb'} if $$self{'wrdb'};
+
+    $$self{'wrdb_pid'} = $$;
+
+    return $$self{'wrdb'} = Search::Xapian::WritableDatabase
 	->new($$self{'db_root'}, Search::Xapian::DB_CREATE_OR_OPEN);
 }
 
@@ -68,7 +72,7 @@ sub add_release {
 sub flush {
     my ($self) = @_;
 
-    warn "\n*** hash: flushing\n";
+    warn "*** hash: flushing\n";
     $self->wrdb->flush();
 }
 
@@ -153,7 +157,14 @@ sub reset_db {
 sub DESTROY {
     my ($self) = @_;
    
-    $self->flush() if $self->{'writes'} > 0;
+    if ($self->{'writes'} > 0) {
+	if ($$self{'wrdb_pid'} != $$) {
+	    undef $$self{'wrdb'};
+	}
+	else {
+	    $self->flush();
+	}
+    }
 }
 
 1;
