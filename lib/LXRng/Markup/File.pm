@@ -74,14 +74,14 @@ sub format_include {
 }
 
 sub format_code {
-    my ($self, $idre, $syms, $frag) = @_;
+    my ($self, $idre, $res, $frag) = @_;
 
     my $tree = $self->context->vtree();
     my $path = $self->context->path();
     Subst::Complex::s($frag,
 		      $idre => sub {
 			  my $sym = $_[1];
-			  if (exists($$syms{$sym})) {
+			  unless (exists($$res{$sym})) {
 			      $sym = safe_html($sym);
 			      return qq{<a href="+code=$sym" class="sref">$sym</a>}
 			  }

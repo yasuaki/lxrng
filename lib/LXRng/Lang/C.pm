@@ -77,9 +77,8 @@ sub markuphandlers {
     my ($self, $context, $node, $markup) = @_;
 
     my $index = $context->config->{'index'};
-    my $syms  = $index->symbols_by_file($context->tree, $context->release,
-					$node->name);
-    my $idre  = $self->identifier_re();
+    my $idre = $self->identifier_re();
+    my $res  = $self->reserved();
 
     my %subst;
 
@@ -104,7 +103,7 @@ sub markuphandlers {
 	
     $subst{'code'} = new Subst::Complex
 	qr/\n/	   => $format_newline,
-	qr/[^\n]*/ => sub { $markup->format_code($idre, $syms, @_) };
+	qr/[^\n]*/ => sub { $markup->format_code($idre, $res, @_) };
 
     $subst{'start'} = new Subst::Complex
 	qr/^/	   => $format_newline;
