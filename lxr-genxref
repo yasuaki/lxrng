@@ -16,35 +16,32 @@ use Carp;
 use Data::Dumper;
 use IO::Handle;
 use Fcntl;
+use Term::ProgressBar;
 
-$SIG{'INT'}  = sub { die "SIGINT: please wait, flushing caches...\n"; };
-$SIG{'QUIT'} = sub { die "SIGQUIT: please wait, flushing caches...\n"; };
-$SIG{'TERM'} = sub { die "SIGTERM: please wait, flushing caches...\n"; };
+$SIG{'INT'}  = sub { die "\nSIGINT: please wait, flushing caches...\n"; };
+$SIG{'QUIT'} = sub { die "\nSIGQUIT: please wait, flushing caches...\n"; };
+$SIG{'TERM'} = sub { die "\nSIGTERM: please wait, flushing caches...\n"; };
+$SIG{'PIPE'} = sub { die "\nSIGTERM: please wait, flushing caches...\n"; };
 
 autoflush STDOUT 1;
 autoflush STDERR 1;
 
-my $cols = 0;
-sub progress_mark {
-    my ($mark) = @_;
+my $tree = shift(@ARGV);
+my @versions = @ARGV;
 
-    if ($cols > 79) {
-	print("\n");
-	$cols = 0;
-    }
-    print(STDERR $mark);
-    $cols++;
-}
+my $context = LXRng::Context->new('tree' => $tree);
+LXRng::Lang->init($context);
 
-sub progress_info {
-    my ($msg) = @_;
-    print(STDERR "\n") if $cols > 0;
-    print(STDERR "$msg\n");
-    $cols = 0;
-}
+my $index   = $context->config->{'index'};
+my $usage   = $context->config->{'usage'};
+my $hash    = $context->config->{'search'};
+my $rep     = $context->config->{'repository'};
+my $progress;
 
-sub make_add_ident {
-    my ($index, $fileid) = @_;
+$SIG{'__WARN__'} = sub { $progress->message(shift) if $progress };
+
+sub make_add_ident($) {
+    my ($fileid) = @_;
 
     my $last_func;
     my %identcache;
@@ -85,25 +82,19 @@ sub make_add_ident {
     }
 }
 
-sub index_file {
-    my ($context, $index, $tree, $file, $fileid) = @_;
+sub index_file($$) {
+    my ($file, $fileid) = @_;
 
     my $lang = LXRng::Lang->new($file);
 
-    unless ($index->to_index($fileid)) {
-	progress_mark("*");
-	return;
-    }
-    return unless $lang->doindex();
+    return 0 unless $index->to_index($fileid);
+    return 1 unless $lang->doindex();
 
-    my $add_ident = make_add_ident($index, $fileid);
+    my $add_ident = make_add_ident($fileid);
    
-    progress_info("indexing ".$file->name."[".$file->revision."] ".
-		  $file->size." bytes ($lang)...");
-
+    $progress->message("--- indexing    ".$file->name.
+		       " [".$file->revision."]");
     my @extra_flags = ('-IEXPORT_SYMBOL+', '-I__initcall+');
-
-    my $path = $file->phys_path;
 
     my $ctags;
     my $pid = open($ctags, '-|');
@@ -116,44 +107,49 @@ sub index_file {
 	     '--excmd=number', '-f', '-',
 	     '--language-force='.$lang->ctagslangname,
 	     $lang->ctagsopts,
-	     $path);
+	     $file->phys_path);
 
 	# Still here?
 	warn $!;
 	kill(9, $$);
     }
 
-    LXRng::Index::transaction {
-	while (<$ctags>) {
-	    chomp;
-	    my ($symbol, $file, $excmd, @info) = split(/\t/);
-	    my %info = map { split(/:/, $_, 2) } @info;
+    while (<$ctags>) {
+	chomp;
+	my ($symbol, $file, $excmd, @info) = split(/\t/);
+	my %info = map { split(/:/, $_, 2) } @info;
 	    
-	    $add_ident->($symbol, \%info);
-	}
-    } $index;
-
-    $path = undef;
+	$add_ident->($symbol, \%info);
+    }
+    return 1;
 }
 
-sub reference_file {
-    my ($context, $index, $tree, $file, $fileid) = @_;
+# We allow $usage to be supplied both by the Search and Index
+# backends, since it's not quite clear which is better.  There's a
+# certain added complexity because of this, so perhaps this feature
+# ought to go once clear best choice emerges.  (For instance,
+# reference_file is called from hash_file with a reference to the
+# hash indexing's document object, which is only actually used if
+# $usage is the Search backend.)
+
+sub reference_file($$$) {
+    my ($file, $fileid, $doc) = @_;
 
     my $lang = LXRng::Lang->new($file);
 
-    unless ($index->to_reference($fileid)) {
-	progress_mark(".");
-	return;
-    }
-    return unless $lang->doindex();
+    return 0 unless $index->to_reference($fileid);
+    return 1 unless $lang->doindex();
 
-    my $parse = new LXRng::Parse::Simple($file->handle, 8,
+    my $handle;
+    sysopen($handle, $file->phys_path, 0) || die($!);
+
+    my $parse = new LXRng::Parse::Simple($handle, 8,
 					 @{$lang->parsespec});
 
-    progress_info("referencing ".$file->name.", ".
-		  $file->size." bytes ($lang)...");
+    $progress->message("--- referencing ".$file->name.
+		       " [".$file->revision."]");
 
-    my $res = $lang->reserved();
+    my $reserved = $lang->reserved();
 
     my $re = qr(
 		(?m:^|[^a-zA-Z0-9_])		# Non-symbol chars.
@@ -161,6 +157,7 @@ sub reference_file {
 		\b
 		)x;
 
+    my %refs;
     my $line = 1;
     while (1) {
 	my ($btype, $frag) = $parse->nextfrag;
@@ -171,12 +168,10 @@ sub reference_file {
 	    
 	    while ($frag =~ /\G.*?(?:(\n)|$re)/gc) {
 		$line++ && next if defined $1;
+		my $sym = $2;
 
-		my $id = $2;
-
-		next if $$res{$id};
-
-		$index->add_usage($fileid, $line, $id);
+		next if $$reserved{$sym};
+		push(@{$refs{$sym} ||= []}, $line);
 	    }
 	}
 	else {
@@ -191,59 +186,61 @@ sub reference_file {
 	    $line += $frag =~ tr/\n/\n/;
 	}
     }
+    close($handle);
+
+    foreach my $sym (keys %refs) {
+	my $sym_id = $index->symbol_id($sym, 1);
+	$usage->add_usage($doc, $fileid, $sym_id, $refs{$sym});
+    }
+    undef %refs;
+    return 1;
 }
 
-sub hash_file {
-    my ($context, $index, $hash, $tree, $file, $fileid, $rels) = @_;
+sub hash_file($$$) {
+    my ($file, $fileid, $rels) = @_;
 
     my $docid;
     if ($index->to_hash($fileid)) {
-	my $handle = $file->handle();
-	progress_info("hashing ".$file->name."[".$file->revision."] ".
-		      $file->size." bytes...");
+	my $handle;
+	sysopen($handle, $file->phys_path, 0) || die($!);
+	$progress->message("--- hashing     ".$file->name.
+			   " [".$file->revision."]");
 	my $doc = $hash->new_document($file->name);
 	while (<$handle>) {
 	    my $pos = 0;
 	    # Latin-1 word characters.
 	    foreach my $term (/([0-9a-zA-Z\300-\326\330-\366\370-\377]+)/g) {
-		if ($term =~ /^[A-Z][^A-Z]*$/) {
-		    $term = 'R'.lc($term);
-		}
-		else {
-		    $term = lc($term);
-		}
+		$term = lc($term);
 		next if length($term) > 128;
 		$doc->add_posting($term, $.*100 + $pos++);
 	    }
 	}
 
+	reference_file($file, $fileid, $doc);
 	$docid = $hash->add_document($doc, [map {
 	    $index->release_id($tree, $_) } @$rels]);
 	$index->add_hashed_document($fileid, $docid);
+	$handle->close();
+	return 1;
     }
     else {
 	$docid = $index->get_hashed_document($fileid);
+	my $doc = $hash->get_document($docid);
+	if (reference_file($file, $fileid, $doc)) {
+	    $hash->save_document($docid, $doc);
+	}
+
 	my $changed = $hash->add_release($docid, [map {
 	    $index->release_id($tree, $_) } @$rels]);
-	progress_mark($changed ? "+" : "-");
+	return $changed;
     }
 }
 
 
-my $tree = shift(@ARGV);
-my @versions = @ARGV;
+sub inventory_release($) {
+    my ($version) = @_;
 
-my $context = LXRng::Context->new('tree' => $tree);
-LXRng::Lang->init($context);
-
-my $index   = $context->config->{'index'};
-my $hash    = $context->config->{'search'};
-my $rep     = $context->config->{'repository'};
-
-sub inventory_release {
-    my ($tree, $version) = @_;
-
-    print("\nrecording all files for $version...\n");
+    $progress->message("--- recording all files for $version");
 
     my $iter = $rep->iterator($version);
     LXRng::Index::transaction {
@@ -258,57 +255,80 @@ sub inventory_release {
     } $index;
 }
 
-sub index_pending {
-    my ($tree) = @_;
+sub index_pending() {
     my $pending = $index->pending_files($tree);
 
-    print("\nindexing ".(0+@$pending)." outstanding files...\n");
-    LXRng::Index::transaction {
- 	foreach my $p (@$pending) {
+    my $total = 0+@$pending;
+    my $count = 0;
+
+    print("\n");
+    $progress = Term::ProgressBar->new({name => 'Indexing',
+					count => $total,
+					ETA => 'linear'});
+    $progress->max_update_rate(0.25);
+    $progress->message("--- indexing/updating $total files...");
+
+    foreach my $p (@$pending) {
+	LXRng::Index::transaction {
  	    my ($fileid, $path, $rev) = @$p;
  	    my $rels = $index->new_releases_by_file($fileid);
  	    next unless @$rels;
+
+	    $context->release($$rels[0]); # Needed for include resolution.
  	    my $node = $rep->node($path, $$rels[0], $rev);
  	    next unless $node;
 
- 	    hash_file($context, $index, $hash, $tree, $node, $fileid, $rels);
- 	    index_file($context, $index, $tree, $node, $fileid);
- 	}
-    } $index;
-
-    print("\nreferencing ".(0+@$pending)." outstanding files...\n");
-    LXRng::Index::transaction {
-	foreach my $p (@$pending) {
-	    my ($fileid, $path, $rev) = @$p;
-	    my $rels = $index->new_releases_by_file($fileid);
-	    next unless @$rels;
-	    $context->release($$rels[0]); # Needed for include resolution.
-	    my $node = $rep->node($path, $$rels[0], $rev);
-	    next unless $node;
-	    
-	    LXRng::Index::transaction {
-		reference_file($context, $index, $tree, $node, $fileid, $rels);
-	    } $index;
-	}
-    } $index;
+ 	    if (hash_file($node, $fileid, $rels) |
+		index_file($node, $fileid))
+	    {
+		$count++;
+		$progress->update($count);
+	    }
+	    else {
+		$total--;
+		my $skip = @$pending - $total; 
+		if ($skip % 100 == 0) {
+		    $progress->message("--- skipped/refreshed $skip files...");
+		}
+		$progress->target($total);
+	    }
+	} $index;
+      }
+    $progress->update($total);
 
     my $done = $index->update_indexed_releases($tree);
 
-    progress_info("releases ".join(", ", @$done)." done") if
+    $progress->message("=== releases: ".join(", ", @$done)) if
 	@$done;
+    print("\n");
 }
 
+
+
+$progress = Term::ProgressBar->new({name => 'Recording',
+				    count => 1,
+				    ETA => 'linear'});
+$progress->max_update_rate(0.25);
+
 if (@versions) {
+    $progress->target(1+@versions);
     foreach my $version (@versions) {
-	inventory_release($tree, $version);
+	inventory_release($version);
+	$progress->update();
     }
 }
 else {
-    foreach my $version (reverse @{$context->all_releases}) {
-	next if $index->_get_release($index->tree_id($tree), $version);
-	inventory_release($tree, $version);
+    @versions = grep { ! $index->_get_release($index->tree_id($tree), $_);
+		   } @{$context->all_releases};
+    $progress->target(1+@versions);
+    foreach my $version (reverse @versions) {
+	inventory_release($version);
+	$progress->update();
     }
 }
+$progress->update();
 
-index_pending($tree);
+LXRng::Index::transaction {
+    index_pending();
+} $index;
 $hash->flush();
