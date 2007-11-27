@@ -150,6 +150,14 @@ sub _cached_seqno {
     return $$self{'cached_seqno'}{$seqname}{'min'}++;
 }
 
+sub _add_include {
+    my ($self, $file_id, $inc_id) = @_;
+
+    push(@{$self->_cache('includes')}, "$file_id\t$inc_id\n");
+
+    return 1;
+}
+
 sub _prime_symbol_cache {
     my ($self) = @_;
 
@@ -218,6 +226,52 @@ sub _get_symbol {
 
     return $$self{'__symbol_cache'}{$symbol} if
 	exists $$self{'__symbol_cache'}{$symbol};
+    
+    return undef;
+}
+
+sub _prime_fileid_cache {
+    my ($self) = @_;
+
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+    my $sth = $$self{'sth'}{'_prime_fileid_cache'} ||=
+	$dbh->prepare(qq{select path, id from ${pre}files});
+    $sth->execute();
+    my %cache;
+    while (my ($name, $id) = $sth->fetchrow_array()) {
+	$cache{$name} = $id;
+    }
+    $sth->finish;
+    
+    $$self{'__fileid_cache'} = \%cache;
+}
+
+sub _add_file {
+    my ($self, $path) = @_;
+
+    my $id = $self->SUPER::_add_file($path);
+    $self->_prime_fileid_cache()
+	unless exists $$self{'__fileid_cache'};
+
+    $$self{'__fileid_cache'}{$path} = $id;
+
+    return $id;
+}
+
+my $_get_file_usage = 0;
+sub _get_file {
+    my ($self, $path) = @_;
+
+    unless (exists($$self{'__fileid_cache'})) {
+	return $self->SUPER::_get_file($path) if
+	    $_get_file_usage++ < 500;
+
+	$self->_prime_fileid_cache();
+    }
+
+    return $$self{'__fileid_cache'}{$path} if
+	exists $$self{'__fileid_cache'}{$path};
     
     return undef;
 }
