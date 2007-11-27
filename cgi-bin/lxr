@@ -357,6 +357,8 @@ sub search {
     }
     my $html = '';
     $template_args{'tree'} = $context->tree;
+    $template_args{'search_type'} = $type if
+	$type =~ /^(search|file|text|code|ident|ambig)$/;
     $template->process('search_result.tt2',
 		       \%template_args,
 		       \$html)

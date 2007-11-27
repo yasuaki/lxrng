@@ -3,7 +3,7 @@
 <img border="0" src="../../gfx/close.png" alt="X"></a>
 </span>
 
-[% IF code_res and code_res.idents %]
+[% IF search_type == "code" or (code_res and code_res.idents.0) %]
 <div class="query_desc">Code search: [% code_res.query %]</div>
 <ul>
 [% FOREACH ident = code_res.idents %]
