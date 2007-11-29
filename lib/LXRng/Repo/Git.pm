@@ -39,15 +39,21 @@ sub cache_key {
 sub _release_timestamp {
     my ($self, $release) = @_;
 
-    my $cinfo = $self->_git_cmd('cat-file', 'commit', $release);
+    my $cinfo = $self->_git_cmd('cat-file', '-t', $release);
+    my ($type) = <$cinfo> =~ /(\S+)/;
+
+    return undef unless $type eq 'tag' or $type eq 'commit';
+
+    my $cinfo = $self->_git_cmd('cat-file', $type, $release);
 
     my $time;
     while (<$cinfo>) {
 	$time = $1 if /^author .*? (\d+(?: [-+]\d+|))$/ ;
 	$time ||= $1 if /^committer .*? (\d+(?: [-+]\d+|))$/ ;
+	$time ||= $1 if /^tagger .*? (\d+(?: [-+]\d+|))$/ ;
     }
-    
-    return $time;
+
+    return $time || 0;
 }
 
 sub _use_author_timestamp {
