@@ -9,8 +9,6 @@ sub new {
 
     memoize('tree_id');
     memoize('release_id');
-    memoize('file_id');
-    memoize('symbol_id');
 
     return bless(\%args, $class);
 }
