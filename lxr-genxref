@@ -17,11 +17,13 @@ use Data::Dumper;
 use IO::Handle;
 use Fcntl;
 use Term::ProgressBar;
+use Devel::Size qw(size total_size);
 
-$SIG{'INT'}  = sub { die "\nSIGINT: please wait, flushing caches...\n"; };
-$SIG{'QUIT'} = sub { die "\nSIGQUIT: please wait, flushing caches...\n"; };
-$SIG{'TERM'} = sub { die "\nSIGTERM: please wait, flushing caches...\n"; };
-$SIG{'PIPE'} = sub { die "\nSIGTERM: please wait, flushing caches...\n"; };
+$SIG{'INT'}  = sub { die "\nSIGINT: $$: please wait, flushing caches...\n"; };
+$SIG{'QUIT'} = sub { die "\nSIGQUIT: $$: please wait, flushing caches...\n"; };
+$SIG{'TERM'} = sub { die "\nSIGTERM: $$: please wait, flushing caches...\n"; };
+$SIG{'PIPE'} = sub { die "\nSIGTERM: $$: please wait, flushing caches...\n"; };
+$SIG{'USR1'} = \&memory_status;
 
 autoflush STDOUT 1;
 autoflush STDERR 1;
@@ -38,7 +40,19 @@ my $hash    = $context->config->{'search'};
 my $rep     = $context->config->{'repository'};
 my $progress;
 
-$SIG{'__WARN__'} = sub { $progress->message(shift) if $progress };
+$SIG{'__WARN__'} = sub { $progress ? $progress->message(shift) : warn(@_) };
+
+sub memory_status {
+    open(my $statf, "< /proc/$$/statm");
+    my %stat;
+    @stat{qw(size resident shared text lib data)} =
+	split(" ", <$statf>);
+    warn '$$$ total size  '.$stat{'size'}."\n";
+    foreach my $k (keys %$index) {
+	warn '$$$ index       '.
+	    sprintf("%-17s %10d\n", $k, total_size($$index{$k}));
+    }
+}
 
 sub make_add_ident($) {
     my ($fileid) = @_;
@@ -92,8 +106,7 @@ sub index_file($$) {
 
     my $add_ident = make_add_ident($fileid);
    
-    $progress->message("--- indexing    ".$file->name.
-		       " [".$file->revision."]");
+    warn("--- indexing    ".$file->name." [".$file->revision."]\n");
     my @extra_flags = ('-IEXPORT_SYMBOL+', '-I__initcall+');
 
     my $ctags;
@@ -146,8 +159,7 @@ sub reference_file($$$) {
     my $parse = new LXRng::Parse::Simple($handle, 8,
 					 @{$lang->parsespec});
 
-    $progress->message("--- referencing ".$file->name.
-		       " [".$file->revision."]");
+    warn("--- referencing ".$file->name." [".$file->revision."]\n");
 
     my $reserved = $lang->reserved();
 
@@ -203,8 +215,7 @@ sub hash_file($$$) {
     if ($index->to_hash($fileid)) {
 	my $handle;
 	sysopen($handle, $file->phys_path, 0) || die($!);
-	$progress->message("--- hashing     ".$file->name.
-			   " [".$file->revision."]");
+	warn("--- hashing     ".$file->name." [".$file->revision."]\n");
 	my $doc = $hash->new_document($file->name);
 	while (<$handle>) {
 	    my $pos = 0;
@@ -240,7 +251,7 @@ sub hash_file($$$) {
 sub inventory_release($) {
     my ($version) = @_;
 
-    $progress->message("--- recording all files for $version");
+    warn("--- recording all files for $version\n");
 
     my $iter = $rep->iterator($version);
     LXRng::Index::transaction {
@@ -266,7 +277,7 @@ sub index_pending() {
 					count => $total,
 					ETA => 'linear'});
     $progress->max_update_rate(0.25);
-    $progress->message("--- indexing/updating $total files...");
+    warn("--- indexing/updating $total files...\n");
 
     foreach my $p (@$pending) {
 	LXRng::Index::transaction {
@@ -288,7 +299,7 @@ sub index_pending() {
 		$total--;
 		my $skip = @$pending - $total; 
 		if ($skip % 100 == 0) {
-		    $progress->message("--- skipped/refreshed $skip files...");
+		    warn("--- skipped/refreshed $skip files...\n");
 		}
 		$progress->target($total);
 	    }
@@ -298,7 +309,7 @@ sub index_pending() {
 
     my $done = $index->update_indexed_releases($tree);
 
-    $progress->message("=== releases: ".join(", ", @$done)) if
+    warn("=== releases: ".join(", ", @$done)."\n") if
 	@$done;
     print("\n");
 }
@@ -321,10 +332,14 @@ else {
     @versions = grep { ! $index->_get_release($index->tree_id($tree), $_);
 		   } @{$context->all_releases};
     $progress->target(1+@versions);
-    foreach my $version (reverse @versions) {
-	inventory_release($version);
-	$progress->update();
-    }
+    LXRng::Index::transaction {
+	foreach my $version (reverse @versions) {
+	    # TODO: Breaking during the inventory process renders
+	    # version half-recorded.
+	    inventory_release($version);
+	    $progress->update();
+	}
+    } $index;
 }
 $progress->update();
 
@@ -332,3 +347,5 @@ LXRng::Index::transaction {
     index_pending();
 } $index;
 $hash->flush();
+
+undef $progress;
