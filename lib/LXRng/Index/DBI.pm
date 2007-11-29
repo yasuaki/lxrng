@@ -38,7 +38,6 @@ sub _to_task {
     return $sth->execute($rfile_id) > 0;
 }
 
-
 sub to_index {
     my ($self, $rfile_id) = @_;
 
