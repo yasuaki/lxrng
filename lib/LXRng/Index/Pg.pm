@@ -118,8 +118,8 @@ sub init_db {
     $dbh->do(qq{
 	create table ${pre}filereleases
 	    (
-	     id_rfile		int references ${pre}revisions(id),
-	     id_release		int references ${pre}releases(id),
+	     id_rfile		int,
+	     id_release		int,
 	     primary key	(id_rfile, id_release)
 	     )
 	}) or die($dbh->errstr);
