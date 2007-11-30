@@ -12,6 +12,12 @@ sub new {
     return bless({name => $name, path => $path, stat => $stat}, $class);
 }
 
+sub cache_key {
+    my ($self) = @_;
+
+    return $$self{'path'};
+}
+
 sub time {
     my ($self) = @_;
 

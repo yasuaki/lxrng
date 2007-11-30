@@ -12,6 +12,12 @@ sub new {
     return bless({root => $root}, $class);
 }
 
+sub cache_key {
+    my ($self) = @_;
+
+    return $$self{'root'};
+}
+
 sub allversions {
     my ($self) = @_;
 
