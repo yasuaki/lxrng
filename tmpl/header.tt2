@@ -44,7 +44,7 @@
       <div class="headingtop"></div>
 	
       <span class="lxr_title">
-	<span class="lxr_l">l</span><span class="lxr_x">x</span><span class="lxr_r">r</span>
+	<span class="lxr_logo"><a href="..">LXR</a></span>
 	<span id="current_path">
 	  <a href="../[% context.vtree %]/">[% context.tree %]/</a>[%
 	  FOREACH elem = context.path_elements

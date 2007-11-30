@@ -29,6 +29,26 @@ span.lxr_r {
 	border-width: 1px;
 }
 
+span.lxr_logo {
+	text-transform: uppercase;
+	font-weight: normal;
+	margin-left: 5px;
+	padding-right: 5px;
+	border-right: solid;
+	border-width: 1px;
+}
+
+div.prose { 
+	margin-left: 20px;
+	margin-right: 20px;
+	max-width: 40em;
+}
+span.section { 
+	font-weight: bold;
+	display: block;
+	margin-top: 10px;
+}
+
 span.lxr_menu {
 /*	float: right; */
 }
