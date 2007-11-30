@@ -1,4 +1,4 @@
-Alias /lxr/ "@@LXRROOT@@/cgi-bin/"
+Alias / "@@LXRROOT@@/cgi-bin/"
 <Directory "@@LXRROOT@@/cgi-bin/">
    Options None
    AllowOverride All
