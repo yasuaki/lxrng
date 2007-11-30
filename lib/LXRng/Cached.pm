@@ -48,10 +48,10 @@ sub LXRng_Cached_cached(&;@) {
 	unless ($val) {
 	    $val = [$func->()];
 	    $LXRng::Cached::memcached->set($key, $val, 3600);
-	    warn "cache miss for $key (".join(":", $file, $line, @args).")\n";
+	    # warn "cache miss for $key (".join(":", $file, $line, @args).")\n";
 	}
 	else {
-	    warn "cache hit for $key\n";
+	    # warn "cache hit for $key\n";
 	}
 	return @$val;
     }

@@ -176,7 +176,6 @@ sub get_symbol_usage {
 	      Search::Xapian::Query->new('__@@sym_'.$sym_id),
 	      Search::Xapian::Query->new('__@@rel_'.$rel_id));
 
-    warn $query;
     my $enq = $db->enquire($query);
 
     my $matches = $enq->get_mset(0, 1000);
@@ -192,12 +191,10 @@ sub get_symbol_usage {
 	my $termend = $enq->get_matching_terms_end($match);
 
 	while ($term ne $termend) {
-	    warn $term;
 	    if ($term !~ /^__\@\@rel/) {
 		my $pos = $db->positionlist_begin($match->get_docid(), $term);
 		my $posend = $db->positionlist_end($match->get_docid(), $term);
 		while ($pos ne $posend) {
-		    warn $match->get_docid();
 		    $res{$match->get_document->get_data()}{0+$pos} = 1;
 		    $pos++;
 		}
