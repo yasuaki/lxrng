@@ -11,8 +11,9 @@ sub new {
     if ($args{'query'}) {
 	# CGI::Simple appears to confuse '' with undef for SCRIPT_NAME.
 	# $$self{'req_url'} = $args{'query'}->url();
-	$$self{'req_url'} =
-	    $args{'query'}->url(-base => 1).'/'.$ENV{'SCRIPT_NAME'};
+	$$self{'req_url'} = $args{'query'}->url(-base => 1);
+	$$self{'req_url'} =~ s,/*$,/,;
+	$ENV{'SCRIPT_NAME'} =~ m,^/?(.*), and $$self{'req_url'} .= $1;
 
 	foreach my $p ($args{'query'}->param) {
 	    $$self{'params'}{$p} = [$args{'query'}->param($p)];
@@ -157,7 +158,6 @@ sub base_url {
     my $base = $self->config->{'base_url'};
     unless ($base) {
 	$base = $$self{'req_url'};
-	$base =~ s/lxr$//;
     }
 
     $base =~ s,/+$,,;
