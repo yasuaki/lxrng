@@ -17,6 +17,8 @@ sub expand_include {
 	
 	return map { /([^\/].*)/ ? $1 : $_ } @paths;
     }
+
+    return ();
 }
 
 1;
