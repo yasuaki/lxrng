@@ -136,9 +136,13 @@ function load_file(tree, file, ver, line) {
 		clearTimeout(hash_check);
 	}
 
-	if ((pending_tree == tree) && (pending_file == file)) {
-		location.hash = location.hash.replace(/\#L\d+$/, '') +
-			'#L' + line;
+	if ((pending_tree == tree) &&
+	    (pending_file == file) &&
+	    (pending_ver == ver))
+	{
+	        if (line > 0)
+			line = '#L' + line;
+		location.hash = location.hash.replace(/\#L\d+$/, '') + line;
 		check_hash_navigation();
 		return false;
 	}
@@ -280,7 +284,7 @@ function update_version(verlist, base_url, tree, defversion, path) {
 	if (use_ajax_navigation) {
 		var file = location.hash.replace(/^[^\/]*\//, '');
 		var line = file.replace(/.*\#L(\d+)/, '$1');
-		file = file.replace(/\#L\d+$/, '');
+		file = file.replace(/\#L\d*$/, '');
 	
 		load_file(loaded_tree, file, verlist.value, line);
 		return false;
