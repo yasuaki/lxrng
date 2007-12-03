@@ -78,19 +78,24 @@ sub format_code {
 
     my $tree = $self->context->vtree();
     my $path = $self->context->path();
-    Subst::Complex::s($frag,
-		      $idre => sub {
-			  my $sym = $_[1];
-			  unless (exists($$res{$sym})) {
-			      $sym = safe_html($sym);
-			      return qq{<a href="+code=$sym" class="sref">$sym</a>}
-			  }
-			  else {
-			      return safe_html($sym);
-			  }
-		      },
-		      qr/(.*?)/ => sub { return safe_html($_[0]) },
-		      );
+
+    $frag =~ s{(.*?)$idre|(.+)}{
+	if ($2) {
+	    unless (exists($$res{$2})) {
+		my $pre = $1;
+		my $sym = safe_html($2);
+		safe_html($pre).
+		    qq{<a href="+code=$sym" class="sref">$sym</a>};
+	    }
+	    else {
+		safe_html($1.$2);
+	    }
+	}
+	else {
+	    safe_html($3);
+	}
+    }ge;
+    return $frag;
 }
 
 sub format_raw {
