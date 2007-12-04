@@ -7,7 +7,7 @@ use base qw(LXRng::Repo::Directory);
 sub new {
     my ($class, $name, $path, $stat) = @_;
 
-    $name =~ s,(.)/*$,$1/,;
+    $name =~ s,/*$,/,;
     $path =~ s,/*$,/,;
     return bless({name => $name, path => $path, stat => $stat}, $class);
 }
@@ -35,12 +35,14 @@ sub contents {
 
     my (@dirs, @files);
     my ($dir, $node);
+    my $prefix = $$self{'name'};
+    $prefix =~ s,^/+,,;
     opendir($dir, $$self{'path'}) or die("Can't open ".$$self{'path'}.": $!");
     while (defined($node = readdir($dir))) {
 	next if $node =~ /^\.|~$|\.orig$/;
 	next if $node eq 'CVS';
 	
-	my $file = LXRng::Repo::Plain::File->new($$self{'name'}.$node,
+	my $file = LXRng::Repo::Plain::File->new($prefix.$node,
 						 $$self{'path'}.$node);
 	push(@files, $file) if $file;
     }
