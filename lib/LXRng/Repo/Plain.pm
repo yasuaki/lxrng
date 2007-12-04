@@ -21,7 +21,7 @@ sub cache_key {
 sub allversions {
     my ($self) = @_;
 
-    my @ver = (sort
+    my @ver = (sort { $b cmp $a }
 	       grep { $_ ne "." and $_ ne ".." } 
 	       map { substr($_, length($$self{'root'})) =~ /([^\/]*)/; $1 }
 	       glob($$self{'root'}."*/"));
