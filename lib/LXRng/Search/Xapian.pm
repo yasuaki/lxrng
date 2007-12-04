@@ -186,6 +186,9 @@ sub get_symbol_usage {
 
     my $match = $matches->begin();
     my $i = 0;
+    my $lines = 0;
+
+  match:
     while ($i++ < $size) {
 	my $term = $enq->get_matching_terms_begin($match);
 	my $termend = $enq->get_matching_terms_end($match);
@@ -197,6 +200,7 @@ sub get_symbol_usage {
 		while ($pos ne $posend) {
 		    $res{$match->get_document->get_data()}{0+$pos} = 1;
 		    $pos++;
+		    last match if $lines++ > 1000;
 		}
 	    }
 	    $term++;

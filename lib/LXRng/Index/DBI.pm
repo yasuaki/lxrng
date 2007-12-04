@@ -278,26 +278,15 @@ sub _identifiers_by_name {
     my $pre = $self->prefix;
     my $sth = $$self{'sth'}{'_identifiers_by_name'} ||=
 	$dbh->prepare(qq{
-	    select i.id, i.type, f.path, i.line, s.name, c.type, c.id, 
-	    i.id_rfile
-		from ${pre}identifiers i
-	        left outer join ${pre}identifiers c on i.context = c.id
-		left outer join ${pre}symbols s on c.id_symbol = s.id,
-		${pre}files f, ${pre}filereleases r, ${pre}revisions v
+	    select i.id, i.type, f.path, i.line, i.id_rfile
+		from ${pre}identifiers i, ${pre}files f,
+			 ${pre}filereleases r, ${pre}revisions v
 		where i.id_rfile = v.id and v.id = r.id_rfile 
 		and r.id_release = ? and v.id_file = f.id 
-		and i.id_symbol = ?});
+		and i.id_symbol = ? limit 500});
 
     $sth->execute($rel_id, $sym_id);
     my $res = $sth->fetchall_arrayref();
-
-    use Data::Dumper;
-    foreach my $def (@$res) {
-#	warn Dumper($def);
-	$$def[7] = 42;
-#	my @files = $self->get_referring_files($rel_id, $$def[7]);
-#	warn Dumper(\@files);
-    }
 
     return $res;
 }
@@ -354,34 +343,46 @@ sub _rfile_path_by_id {
 sub _get_includes_by_file {
     my ($self, $res, $rel_id, @rfile_ids) = @_;
 
-    my $placeholders = join(', ', ('?') x @rfile_ids);
-    my $dbh = $self->dbh;
-    my $pre = $self->prefix;
-    my $sth = $dbh->prepare(qq{select rf.id, f.path 
-				   from ${pre}revisions rf,
-				   ${pre}filereleases v,
-				   ${pre}includes i,
-				   ${pre}revisions ri,
-				   ${pre}files f
-				   where rf.id = i.id_rfile
-				   and rf.id_file = f.id
-				   and rf.id = v.id_rfile
-				   and v.id_release = ?
-				   and i.id_include_path = ri.id_file
-				   and ri.id in ($placeholders)});
-
-
-    $sth->execute($rel_id, @rfile_ids);
-    my $files = $sth->fetchall_arrayref();
-    $sth->finish();
-
     my @recurse;
-    foreach my $r (@$files) {
-	push(@recurse, $$r[0]) unless exists($$res{$$r[0]});
+    while (@rfile_ids > 0) {
+	my @rfile_batch = splice(@rfile_ids, 0, 8192);
 
-	$$res{$$r[0]} = $$r[1];
+	my $dbh = $self->dbh;
+	my $pre = $self->prefix;
+	my $sth;
+
+	$sth = $$self{'sth'}{'get_includes_by_file'} if
+	    @rfile_batch == 1024;
+
+	unless ($sth) {
+	    my $placeholders = join(', ', ('?') x @rfile_batch);
+	    $sth = $dbh->prepare(qq{select rf.id, f.path 
+					from ${pre}revisions rf,
+					${pre}filereleases v,
+					${pre}includes i,
+					${pre}revisions ri,
+					${pre}files f
+					where rf.id = i.id_rfile
+					and rf.id_file = f.id
+					and rf.id = v.id_rfile
+					and v.id_release = ?
+					and i.id_include_path = ri.id_file
+					and ri.id in ($placeholders)});
+
+	    $$self{'sth'}{'get_includes_by_file'} = $sth if
+		@rfile_batch == 8192;
+	}
+
+	$sth->execute($rel_id, @rfile_batch);
+	my $files = $sth->fetchall_arrayref();
+	$sth->finish();
+
+	foreach my $r (@$files) {
+	    push(@recurse, $$r[0]) unless exists($$res{$$r[0]});
+
+	    $$res{$$r[0]} = $$r[1];
+	}
     }
-
     $self->_get_includes_by_file($res, $rel_id, @recurse) if @recurse;
 
     return 1;
@@ -511,5 +512,38 @@ sub get_rfile_timestamp {
 
     return ($epoch, $tz);
 }    
+
+sub files_by_wildcard {
+    my ($self, $tree, $release, $query) = @_;
+
+    return [] unless $query =~ /[a-zA-Z0-9]/;
+    
+    my $rel_id = $self->release_id($tree, $release);
+    return [] unless $rel_id;
+
+    $query =~ tr/\?\*/_%/;
+    unless ($query =~ s,^/,,) {
+	# Absolute path queries are left alone, module leading-slash-removal.
+	$query = '%'.$query.'%';
+    }
+
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+    my $sth = $$self{'sth'}{'files_by_wildcard'} ||=
+	$dbh->prepare(qq{
+	    select f.path
+		from lxgit_files f, lxgit_revisions v, lxgit_filereleases r
+		where f.path like ? and f.id = v.id_file and v.id = r.id_rfile
+		and r.id_release = ?
+		order by f.path});
+
+    $sth->execute($query, $rel_id);
+    my @res;
+    while (my ($path) = $sth->fetchrow_array()) {
+	push(@res, $path);
+    }
+
+    return \@res;
+}
 
 1;

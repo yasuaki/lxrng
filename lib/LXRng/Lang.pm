@@ -25,7 +25,7 @@ use vars qw(@languages %deftypes %defweight);
 
 %defweight = do { my $i = 0; 
 		  map { $_ => $i++ }
-		  qw(c f i n s t u p x v d e g m l) };
+		  qw(c p f i n s t u x v d e g m l) };
 
 
 sub init {

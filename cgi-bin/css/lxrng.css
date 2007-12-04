@@ -1,3 +1,5 @@
+/* -*- mode: fundamental -*- */
+
 body { 
 	font-family: sans-serif;
 	margin-top: 3px;
@@ -114,8 +116,28 @@ body.popup div.search_results {
 	margin: 1px;
 }
 
+span.identtype { 
+	display: block;
+/*	font-weight: bold; */
+	font-style: italic;
+	margin-top: 10px;
+	margin-left: 1em;
+}
+
+span.resultline {
+	display: block;
+	margin-left: 2em;
+}
+
+span.resultdetails {
+	font-size: 75%;
+/*	font-style: italic; */
+} 
+
 div.query_desc {
 	font-weight: bold;
+	margin-top: 10px;
+	margin-bottom: 5px;
 }
 
 span.close-button {
