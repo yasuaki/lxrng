@@ -532,7 +532,7 @@ sub files_by_wildcard {
     my $sth = $$self{'sth'}{'files_by_wildcard'} ||=
 	$dbh->prepare(qq{
 	    select f.path
-		from lxgit_files f, lxgit_revisions v, lxgit_filereleases r
+		from ${pre}files f, ${pre}revisions v, ${pre}filereleases r
 		where f.path like ? and f.id = v.id_file and v.id = r.id_rfile
 		and r.id_release = ?
 		order by f.path});
