@@ -40,8 +40,9 @@ sub contents {
 	next if $node =~ /^\.|~$|\.orig$/;
 	next if $node eq 'CVS';
 	
-	push(@files, LXRng::Repo::Plain::File->new($$self{'name'}.$node,
-						      $$self{'path'}.$node));
+	my $file = LXRng::Repo::Plain::File->new($$self{'name'}.$node,
+						 $$self{'path'}.$node);
+	push(@files, $file) if $file;
     }
     closedir($dir);
 
