@@ -133,7 +133,7 @@ a.line {
 	top: auto;
 	left: 0px;
 	height: 2ex;
-	width: 5.5ex;
+	width: 3em;
 	text-align: right;
 
 	border: solid;
@@ -151,7 +151,7 @@ a.line span {
 	filter: alpha(opacity=10);
 	moz-opacity: .10;
 	opacity: .10;
-	width: 5.5ex;
+	width: 3em;
 }
 
 
@@ -161,13 +161,13 @@ pre#file_contents li {
 
 span.line {
 	position: absolute;
-	left: 7ex;
+	left: 4em;
 	color: black;
 	white-space: pre;
 }
 
 pre {
-	margin-left: 1.5ex;
+	margin-left: 0.7em;
 }
 
 a img { 
