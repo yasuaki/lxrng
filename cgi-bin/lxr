@@ -307,9 +307,24 @@ sub search {
 
 
     if ($find =~ /\S/) {
+	if ($find =~ /^(ident|code):(.*)/) {
+	    $type = 'code';
+	    $find = $2;
+	}
+	elsif ($find =~ /^(file|path):(.*)/) {
+	    $type = 'file';
+	    $find = $2;
+	}
+	elsif ($find =~ /^(text):(.*)/) {
+	    $type = 'text';
+	    $find = $2;
+	}
+
 	if ($type eq 'file' or $type eq 'search') {
-	    # $template_args{'file_res'} = {'query' => $find,
-	    #				  'files' => \@args,}
+	    my $files = $index->files_by_wildcard($context->tree,
+						  $ver, $find);
+	    $template_args{'file_res'} = {'query' => $find,
+	    				  'files' => $files,}
 	}
 	if ($type eq 'text' or $type eq 'search') {
 	    my $hash  = $context->config->{'search'};
@@ -320,12 +335,14 @@ sub search {
 					  'files' => $res};
 	}
 	if ($type eq 'code' or $type eq 'search') {
-	    my $result = $index->symbols_by_name($context->tree, $ver, $find);
-	    my @cooked = (map { $$_[1] = $LXRng::Lang::deftypes{$$_[1]};
-				$$_[5] &&= $LXRng::Lang::deftypes{$$_[5]};
+	    my $result = $index->identifiers_by_name($context->tree, 
+						     $ver, $find);
+	    my @cooked = (map { $$_[1] = ucfirst($LXRng::Lang::deftypes{$$_[1]});
 				$_ }
 			  sort { $LXRng::Lang::defweight{$$a[1]} cmp
-				     $LXRng::Lang::defweight{$$b[1]} }
+				     $LXRng::Lang::defweight{$$b[1]} ||
+				 $$a[2] cmp $$b[2] ||
+				 $$a[3] <=> $$b[3] }
 			  @$result);
 	    $template_args{'code_res'} = {'query' => $find,
 					  'idents' => \@cooked};
@@ -335,11 +352,9 @@ sub search {
 	    my ($symname, $symid, $ident, $refs) =
 		$index->get_identifier_info($usage, $find, $rel_id);
 
-	    $$ident[1] = $LXRng::Lang::deftypes{$$ident[1]};
+	    $$ident[1] = ucfirst($LXRng::Lang::deftypes{$$ident[1]});
 	    $$ident[5] &&= $LXRng::Lang::deftypes{$$ident[5]};
 
-	    # use Data::Dumper;
-	    # warn Dumper($symname, $symid, $ident, $refs);
 	    $template_args{'ident_res'} = {'query' => $symname,
 					   'ident' => $ident,
 					   'refs' => $refs};

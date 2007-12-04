@@ -102,11 +102,6 @@ sub includes_by_file {
     return $self->_includes_by_id($file_id);
 }
 
-#sub add_symbol {
-#    my ($self, $file_id, $line, $symbol, $type, $ctx_id) = @_;
-#    return $self->_add_symbol($file_id, $line, $symbol, $type, $ctx_id);
-#}
-
 sub add_ident {
     my ($self, $rfile_id, $line, $symbol, $type, $ctx_id) = @_;
     
@@ -121,14 +116,12 @@ sub symbol_by_id {
     return $self->_symbol_by_id($id);
 }
 
-sub symbols_by_name {
+sub identifiers_by_name {
     my ($self, $tree, $release, $symbol) = @_;
 
     my $rel_id = $self->release_id($tree, $release);
-#    return $cache_sym{$rel_id}{$symbol} if
-#	exists $cache_sym{$rel_id} and exists $cache_sym{$rel_id}{$symbol};
+
     return $self->_identifiers_by_name($rel_id, $symbol);
-#    $cache_sym{$rel_id}{$symbol} = $id;
 }
 
 sub symbols_by_file {
