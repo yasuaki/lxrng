@@ -339,8 +339,8 @@ sub search {
 						     $ver, $find);
 	    my @cooked = (map { $$_[1] = ucfirst($LXRng::Lang::deftypes{$$_[1]});
 				$_ }
-			  sort { $LXRng::Lang::defweight{$$a[1]} cmp
-				     $LXRng::Lang::defweight{$$b[1]} ||
+			  sort { $LXRng::Lang::defweight{$$b[1]} cmp
+				     $LXRng::Lang::defweight{$$a[1]} ||
 				 $$a[2] cmp $$b[2] ||
 				 $$a[3] <=> $$b[3] }
 			  @$result);

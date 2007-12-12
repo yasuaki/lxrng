@@ -278,14 +278,23 @@ sub _identifiers_by_name {
     my $pre = $self->prefix;
     my $sth = $$self{'sth'}{'_identifiers_by_name'} ||=
 	$dbh->prepare(qq{
-	    select i.id, i.type, f.path, i.line, i.id_rfile
+	    (select i.id, i.type, f.path, i.line, i.id_rfile
 		from ${pre}identifiers i, ${pre}files f,
 			 ${pre}filereleases r, ${pre}revisions v
 		where i.id_rfile = v.id and v.id = r.id_rfile 
 		and r.id_release = ? and v.id_file = f.id 
-		and i.id_symbol = ? limit 500});
+		and i.type != 'm' and i.type != 'l'
+		and i.id_symbol = ? limit 250)
+	    union
+	    (select i.id, i.type, f.path, i.line, i.id_rfile
+		from ${pre}identifiers i, ${pre}files f,
+			 ${pre}filereleases r, ${pre}revisions v
+		where i.id_rfile = v.id and v.id = r.id_rfile 
+		and r.id_release = ? and v.id_file = f.id 
+		and (i.type = 'm' or i.type = 'l')
+		and i.id_symbol = ? limit 250)});
 
-    $sth->execute($rel_id, $sym_id);
+    $sth->execute($rel_id, $sym_id, $rel_id, $sym_id);
     my $res = $sth->fetchall_arrayref();
 
     return $res;
