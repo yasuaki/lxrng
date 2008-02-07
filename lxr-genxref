@@ -1,4 +1,23 @@
 #!/usr/bin/perl
+#
+# Copyright (C) 2008 Arne Georg Gleditsch <lxr@linux.no> and others.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# The full GNU General Public License is included in this distribution
+# in the file called COPYING.
 
 use strict;
 use warnings;
@@ -140,7 +159,7 @@ sub index_file($$) {
 # We allow $usage to be supplied both by the Search and Index
 # backends, since it's not quite clear which is better.  There's a
 # certain added complexity because of this, so perhaps this feature
-# ought to go once clear best choice emerges.  (For instance,
+# ought to go once a clear best choice emerges.  (For instance,
 # reference_file is called from hash_file with a reference to the
 # hash indexing's document object, which is only actually used if
 # $usage is the Search backend.)

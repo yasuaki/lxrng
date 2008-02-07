@@ -1,0 +1,29 @@
+
+CREDITS
+
+The LXRng project owes its ancestry to older LXR project
+(http://sourceforge.net/projects/lxr/).  As such, the following people
+deserve credit for their work on the original version of LXR:
+
+  Dave Brondsema
+  Dawn Endico
+  Guido Sohne
+  Jan-Benedict Glaw 
+  Jason Dorie Short
+  Jens Heimann
+  Joseph Corral
+  Kristoffer Gleditsch
+  Malcolm Box
+  Pavel Hlavnicka
+  Peder O. Klingenberg
+  Per Kristian Gjermshus
+
+Thanks -- and please report any omissions to <lxr@linux.no>!
+
+
+DISCLAIMER
+
+While the current LXRng source is believed to be free of actual
+remnants of the original LXR code base, we encourage you to please get
+in touch if you belive there are parts that lack appropriate copyright
+notices or otherwise seem insufficiently credited.  Thanks.

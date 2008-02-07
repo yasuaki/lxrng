@@ -1,3 +1,22 @@
+# Copyright (C) 2008 Arne Georg Gleditsch <lxr@linux.no>.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# The full GNU General Public License is included in this distribution
+# in the file called COPYING.
+
 package LXRng::Index::PgBatch;
 
 # Specialized subclass of LXRng::Index::Pg for doing parallelized
@@ -32,6 +51,7 @@ sub transaction {
 
 	# Only occasional synchronization if we're inside another
 	# transaction.
+	# TODO: Check fill grade of caches and flush based on that.
 	if ($self->{'writes'}++ % 491 == 0) {
 	    $self->flush();
 	    $self->dbh->commit();
@@ -138,6 +158,9 @@ sub _add_cached {
 	$$self{'cache_idx'}{$name} = 0;
     }
 
+    # TODO: flushing here breaks transactional integrity.  Better to
+    # extend cache area and let transaction boundary perform
+    # flush+commit based on fill grade.
     $self->flush() if
 	$$self{'cache_idx'}{$name} + length($line) >
 	length($$self{'cache'}{$name});
@@ -391,6 +414,8 @@ sub DESTROY {
 	return;
     }
 
+    # TODO: should not flush outstanding changes if transaction was
+    # aborted.
     if ($$self{'writes'} > 0) {
 	$self->flush();
 	$self->_flush_wait();
