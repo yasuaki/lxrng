@@ -1,8 +1,0 @@
-Options ExecCGI
-<Files lxr>
-SetHandler cgi-script
-</Files>
-
-<Files prefs>
-SetHandler cgi-script
-</Files>

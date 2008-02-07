@@ -13,9 +13,10 @@ sub _git_cmd {
     my $git;
     my $pid = open($git, "-|");
     die $! unless defined $pid;
+    # warn("git --git-dir=".$$self{'root'}." $cmd @args");
+    
     if ($pid == 0) {
-	$ENV{'GIT_DIR'} = $$self{'root'};
-	exec('git', $cmd, @args);
+	exec('git', '--git-dir='.$$self{'root'}, $cmd, @args);
 	warn $!;
 	kill(9, $$);
     }

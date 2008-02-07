@@ -1,0 +1,20 @@
+Options ExecCGI
+
+
+<IfModule mod_perl.c>
+  PerlModule LXRng::ModPerl;
+
+  <Files *>
+        SetHandler perl-script
+        PerlResponseHandler LXRng::ModPerl
+  </Files>
+</IfModule>
+
+
+<Files robots.txt>
+        SetHandler send-as-is
+</Files>
+
+<Files favicon.ico>
+        SetHandler send-as-is
+</Files>

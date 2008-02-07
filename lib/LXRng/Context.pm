@@ -8,12 +8,21 @@ sub new {
 
     $self = bless({}, $self);
 
+    my $config = $self->read_config();
+
     if ($args{'query'}) {
-	# CGI::Simple appears to confuse '' with undef for SCRIPT_NAME.
-	# $$self{'req_url'} = $args{'query'}->url();
-	$$self{'req_url'} = $args{'query'}->url(-base => 1);
-	$$self{'req_url'} =~ s,/*$,/,;
-	$ENV{'SCRIPT_NAME'} =~ m,^/?(.*), and $$self{'req_url'} .= $1;
+	# Argle.  Both CGI and CGI::Simple seem to botch this up, in
+	# different ways.  CGI breaks if SCRIPT_NAME contains regex
+	# metachars, and CGI::Simple does funny things if SCRIPT_NAME
+	# is the empty string.  Do it by hand...
+	my $host = 'http'.($ENV{'HTTPS'} eq 'ON' ? 's' : '').'://'.
+	    $ENV{'SERVER_NAME'}.
+	    ($ENV{'SERVER_PORT'} == ($ENV{'HTTPS'} eq 'ON' ? 443 : 80)
+	     ? '' : ':'.$ENV{'SERVER_PORT'});
+	my $path = $ENV{'REQUEST_URI'};
+	$path =~ s/\?.*//;
+	$path =~ s,/+,/,g;
+	$$self{'req_url'} = $host.$path;
 
 	foreach my $p ($args{'query'}->param) {
 	    $$self{'params'}{$p} = [$args{'query'}->param($p)];
@@ -23,7 +32,17 @@ sub new {
 	    $$self{'prefs'} = { 
 		map { /^(.*?)(?:=(.*)|)$/; ($1 => $2) } @prefs };
 	}
-	@$self{'tree', 'path'} = $args{'query'}->path_info =~ m,([^/]+)/*(.*),;
+	foreach my $tree (keys %$config) {
+	    my $base = $$config{$tree}{'base_url'};
+	    $base =~ s,^https?://[^/]+,,;
+	    $base =~ s,/*$,/,;
+
+	    if ($path =~ m,^\Q$base\E(\Q$tree\E|)([+][^/]+|)(?:$|/)(.*),) {
+		@$self{'tree', 'path'} = ($1.$2, $3);
+		last;
+	    }
+	}
+
 	$$self{'tree'} = $args{'query'}->param('tree') 
 	    if $args{'query'}->param('tree');
     }
@@ -31,17 +50,16 @@ sub new {
 	$$self{'tree'} = $args{'tree'};
     }
 
-    if ($$self{'tree'} =~ s/[+](.*)$//) {
+    if ($$self{'tree'} =~ s/[+]([^+]*)$//) {
 	$$self{'release'} = $1 if $1 ne '*';
     }
 
-    if ($$self{'tree'}) {
+    if ($$self{'tree'} and $$self{'tree'} !~ /^[+]/) {
 	my $tree = $$self{'tree'};
-	my @config = $self->read_config();
 	die("No config for tree $tree") 
-	    unless ref($config[0]) eq 'HASH' and exists($config[0]{$tree});
+	    unless exists($$config{$tree});
 
-	$$self{'config'} = $config[0]{$tree};
+	$$self{'config'} = $$config{$tree};
 	$$self{'config'}{'usage'} ||= $$self{'config'}{'index'};
     }
 
@@ -69,7 +87,9 @@ sub read_config {
 			  join("", <$cfgfile>));
 	die($@) if $@;
 
-	return @config;
+	die("Bad configuration file format\n")
+	    unless @config == 1 and ref($config[0]) eq 'HASH';
+	return $config[0];
     }
     else {
 	die("Couldn't open configuration file \"$confpath\".");
@@ -160,12 +180,12 @@ sub base_url {
 	$base = $$self{'req_url'};
     }
 
-    $base =~ s,/+$,,;
+    $base =~ s,/*$,/,;
 
     return $base if $notree;
 
-    $base .= '/'.$self->vtree.'/';
-    $base =~ s,//+$,/,;
+    $base .= $self->vtree.'/';
+    $base =~ s,/+$,/,;
 
     return $base;
 }

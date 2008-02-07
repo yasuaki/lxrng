@@ -1,6 +1,8 @@
 package LXRng::Cached;
 
 use strict;
+use LXRng;
+
 require Exporter;
 use vars qw($memcached @ISA @EXPORT);
 @ISA = qw(Exporter);
@@ -12,9 +14,11 @@ BEGIN {
 	   require Digest::SHA1;
        };
     if ($@ eq '') {
+	my $nspace = substr(Digest::SHA1::sha1_hex($LXRng::ROOT), 0, 8);
+	
 	$memcached = Cache::Memcached->new({
 	    'servers' => ['127.0.0.1:11211'],
-	    'namespace' => 'lxrng'});
+	    'namespace' => 'lxrng:$nspace'});
 	$memcached = undef 
 	    unless ($memcached->set(':caching' => 1))
     }

@@ -1,14 +1,8 @@
-#!/usr/bin/perl
+package LXRng::Web;
 
 use strict;
 
-use FindBin;
-use lib "$FindBin::Bin/../lib";
-
-use CGI::Carp qw(fatalsToBrowser);
-use IO::Handle;
-
-use LXRng ROOT => "$FindBin::Bin/..";
+use LXRng;
 use LXRng::Context;
 use LXRng::Lang;
 use LXRng::Parse::Simple;
@@ -17,9 +11,9 @@ use LXRng::Markup::Dir;
 use Subst::Complex;
 
 use Template;
+use IO::Handle;
 use Digest::SHA1 qw(sha1_hex);
 use CGI::Ajax;
-use CGI::Simple qw(-newstyle_urls);
 use File::Temp qw(tempdir tempfile);
 use POSIX qw(waitpid);
 
@@ -27,8 +21,7 @@ use constant PDF_LINELEN => 95;
 use constant PDF_CHARPTS => 6.6;
 
 use vars qw($has_gzip_io);
-eval { require PerlIO::gzip; $has_gzip_io = 1; };
-
+# eval { require PerlIO::gzip; $has_gzip_io = 1; };
 
 # Return 1 if gzip compression of html is desired.
 
@@ -126,8 +119,11 @@ sub print_markedup_file {
 sub print_tree_list {
     my ($context, $template) = @_;
 
+    my $base = $context->base_url(1);
+    $base =~ s,[+]trees/?$,,;
     $template->process('tree_list.tt2',
-		       {'context' => $context})
+		       {'context' => $context,
+			'base_url' => $base})
 		or die $template->error();
 }    
 
@@ -421,7 +417,7 @@ sub handle_ajax_request {
     my ($query, $context, $template) = @_;
     my $gzip = do_compress_response($query);
     
-    $query->no_cache(1);
+    # $query->no_cache(1); FIXME -- not available with CGI.pm.
     print($query->header(-type => 'text/html',
 			 -charset => 'utf-8',
 			 -cache-control => 'no-store, no-cache, must-revalidate',
@@ -472,18 +468,15 @@ sub handle_preferences {
 			     -cookie => $lxr_prefs));
 
 	my %template_args;
-	if (defined($context->param('return')) and $context->config) {
-	    $template_args{'return'} = 
-		$context->base_url.$query->param('return');
+	if (defined($context->param('return'))) {
+	    $template_args{'return'} = $query->param('return');
 	}
 	else {
-	    my $url = $query->url(-full => 1, -path => 1);
-	    $url =~ s,/[+ ]prefs\b.*,/,;
-	    $template_args{'return'} = $url;
+	    $template_args{'return'} = $context->base_url(1);
 	}
 	
 	$template->process('prefs_set.tt2',
-		       \%template_args)
+			   \%template_args)
 	    or die $template->error();
     }
     else {
@@ -494,8 +487,12 @@ sub handle_preferences {
 	$nav = 'is_'.$context->prefs->{'navmethod'} if
 	    $context->prefs and $context->prefs->{'navmethod'} ne '';
 	    
+	my $ret = $context->base_url();
+	$ret =~ s,[+]prefs/?,,;
+	$ret .= $query->param('return') if $query->param('return');
+
 	$template->process('prefs.tt2',
-			   {'return' => $query->param('return'),
+			   {'return' => $ret,
 			    $nav => 1})
 	    or die $template->error();
     }
@@ -701,33 +698,33 @@ sub generate_pdf {
 }
 
 
-# Initial request dispatch.
+sub handle {
+    my ($self, $query) = @_;
 
-my $query    = CGI::Simple->new();
-my $context  = LXRng::Context->new('query' => $query);
-my $template = Template->new({'INCLUDE_PATH' => $LXRng::ROOT.'/tmpl/'});
+    my $context  = LXRng::Context->new('query' => $query);
+    my $template = Template->new({'INCLUDE_PATH' => $LXRng::ROOT.'/tmpl/'});
 
-
-if ($context->param('fname')) {
-    handle_ajax_request($query, $context, $template);
-}
-else {	
-    if ($context->path =~ /^[+ ]prefs$/) {
-	handle_preferences($query, $context, $template);
+    if ($context->param('fname')) {
+	handle_ajax_request($query, $context, $template);
     }
-    elsif ($context->path =~ /^[+ ]print=(.*)/) {
-	generate_pdf($query, $context, $template, $1);
-    }
-    else {
-	if ($context->path =~ 
-	    /^[+ ](search|code|ident|file|text|ambig)(?:=(.*)|)/)
-	{
-	    search_result($context, $template, $query,
-			  search($context, $template, $1, $2));
-	    $context->path('');
+    else {	
+	if ($context->path =~ /^[+ ]prefs$/) {
+	    handle_preferences($query, $context, $template);
+	}
+	elsif ($context->path =~ /^[+ ]print=(.*)/) {
+	    generate_pdf($query, $context, $template, $1);
 	}
 	else {
-	    source($context, $template, $query);
+	    if ($context->path =~ 
+		/^[+ ](search|code|ident|file|text|ambig)(?:=(.*)|)/)
+	    {
+		search_result($context, $template, $query,
+			      search($context, $template, $1, $2));
+		$context->path('');
+	    }
+	    else {
+		source($context, $template, $query);
+	    }
 	}
     }
 }

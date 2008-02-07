@@ -15,6 +15,7 @@
   	document.write('<base href="' + base + '">');
       }
       else {
+  	document.write('<base href="[% base_url %]">');
   	document.write('<meta http-equiv="Refresh" content="1;+trees">');
 	use_ajax_navigation = 0;
       }
@@ -23,8 +24,8 @@
     [% IF !is_ajax %]
     <base href="[% base_url %]">
     [% END %]
-    <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
-    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng">
+    <script type="text/javascript" src="../.static/js/lxrng-funcs.js"></script>
+    <link rel="stylesheet" href="../.static/css/lxrng.css" type="text/css" title="LXRng">
 
     [% javascript %]
 
@@ -51,12 +52,12 @@
 	  %]<a href="[% elem.path %]">[% elem.node %]</a>[%
 	  END %]
 	</span>
-	<img src="../../gfx/rolldown.png" alt="History">
+	<img src="../.static/gfx/rolldown.png" alt="History">
         <span id="lxr_print"
           [% IF is_ajax || node.name.match('/$') %]style="display: none;"[% END %]>
 	  <form action="+print=[% node.name %]" method="post" id="print_form">
 	    <button type="submit" class="print">
-      	      <img src="../../gfx/print.png" alt="Print">
+      	      <img src="../.static/gfx/print.png" alt="Print">
             </button>
 	  </form>
         </span>
@@ -66,7 +67,7 @@
 	<span class="lxr_version">
 	  <a [% IF is_ajax %]href="#" onclick="return previous_version();"[% ELSE %]
 	     href="../[% context.tree %]+[% ver_prev %]/[% node.name %]"[% END %]>
-	    <img src="../../gfx/left.png" alt="&lt;&lt;"></a>
+	    <img src="../.static/gfx/left.png" alt="&lt;&lt;"></a>
 	  <form action="[% node.name %]" method="get">
 	    <span id="ver_select">
 	      [% INCLUDE release_select.tt2, context = context %]
@@ -74,7 +75,7 @@
 	  </form>
 	  <a [% IF is_ajax %]href="#" onclick="return next_version();"[% ELSE %]
 	     href="../[% context.tree %]+[% ver_next %]/[% node.name %]"[% END %]>
-	    <img src="../../gfx/right.png" alt="&gt;&gt;"></a>
+	    <img src="../.static/gfx/right.png" alt="&gt;&gt;"></a>
 	</span>
 
 	<span class="lxr_search">

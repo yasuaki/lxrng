@@ -3,8 +3,8 @@
 <html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
-    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng">
+    <script type="text/javascript" src="../.static/js/lxrng-funcs.js"></script>
+    <link rel="stylesheet" href="../.static/css/lxrng.css" type="text/css" title="LXRng">
 
     <title id="title">LXR Preferences</title>
   </head>
@@ -19,7 +19,7 @@
       </span>
 
       <div class="lxr_menu">
-	<span class="lxr_prefs"><a href="./[% return %]">Back</a></span>
+	<span class="lxr_prefs"><a href="[% return %]">Back</a></span>
       </div>
       <div class="headingbottom"></div>
     </div>

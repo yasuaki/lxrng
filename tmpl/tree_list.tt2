@@ -3,8 +3,9 @@
 <html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <script type="text/javascript" src="../js/lxrng-funcs.js"></script>
-    <link rel="stylesheet" href="../css/lxrng.css" type="text/css" title="LXRng">
+    <base href="[% base_url %]">
+    <script type="text/javascript" src=".static/js/lxrng-funcs.js"></script>
+    <link rel="stylesheet" href=".static/css/lxrng.css" type="text/css" title="LXRng">
 
     <title id="title">LXR Inventory</title>
   </head>
@@ -14,13 +15,13 @@
       <div class="headingtop"></div>
 
       <span class="lxr_title">
-	<span class="lxr_l">l</span><span class="lxr_x">x</span><span class="lxr_r">r</span>
+      <span class="lxr_logo">LXR</span>
       Inventory for this LXRng site
       </span>
 
       <div class="lxr_menu">
 	<span class="lxr_prefs">
-	<a href="+trees/+prefs?return=..">Prefs</a>
+	<a href="+trees/+prefs">Prefs</a>
 	</span>
       </div>
       <div class="headingbottom"></div>

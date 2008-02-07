@@ -1,6 +1,6 @@
 <span class="close-button">
 <a href="#" onclick="return [% IF navtarget %]window.close();[% ELSE %]hide_search();[% END %]">
-<img border="0" src="../../gfx/close.png" alt="X"></a>
+<img border="0" src="../.static/gfx/close.png" alt="X"></a>
 </span>
 
 [% IF search_type == "code" or (code_res and code_res.idents.0) %]

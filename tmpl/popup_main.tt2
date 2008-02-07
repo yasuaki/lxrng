@@ -5,8 +5,8 @@
     <base href="[% base_url %]">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
-    <script type="text/javascript" src="../../js/lxrng-funcs.js"></script>
-    <link rel="stylesheet" href="../../css/lxrng.css" type="text/css" title="LXRng">
+    <script type="text/javascript" src="../.static/js/lxrng-funcs.js"></script>
+    <link rel="stylesheet" href="../.static/css/lxrng.css" type="text/css" title="LXRng">
 
     <script type="text/javascript">
       var use_ajax_navigation=[% IF is_ajax %]1[% ELSE %]0[% END %];

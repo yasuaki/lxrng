@@ -89,7 +89,7 @@ function ajax_jumpto_line() {
 
 function ajax_prefs() {
 	if (use_ajax_navigation) {
-		var full_path = location.href.split(/#/)[0];
+		var full_path = location.href.match(/(.*?)\/*#/)[1];
 		full_path = full_path + '/' + loaded_tree;
 		if (loaded_ver) {
 			full_path = full_path + '+' + loaded_ver;
