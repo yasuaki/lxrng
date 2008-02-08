@@ -23,7 +23,7 @@ use strict;
 use LXRng;
 
 require Exporter;
-use vars qw($memcached @ISA @EXPORT);
+use vars qw($memcached $has_memcached $nspace @ISA @EXPORT);
 @ISA = qw(Exporter);
 @EXPORT = qw(cached);
 
@@ -33,16 +33,27 @@ BEGIN {
 	   require Digest::SHA1;
        };
     if ($@ eq '') {
-	my $nspace = substr(Digest::SHA1::sha1_hex($LXRng::ROOT), 0, 8);
-	
-	$memcached = Cache::Memcached->new({
-	    'servers' => ['127.0.0.1:11211'],
-	    'namespace' => 'lxrng:$nspace'});
-	$memcached = undef 
-	    unless ($memcached->set(':caching' => 1))
+	$has_memcached = 1;
+	$nspace = substr(Digest::SHA1::sha1_hex($LXRng::ROOT), 0, 8);
     }
 }
 
+sub handle {
+    return undef unless $has_memcached;
+    return $memcached if $memcached;
+
+    $memcached = Cache::Memcached->new({
+	'servers' => ['127.0.0.1:11211'],
+	'namespace' => 'lxrng:$nspace'});
+
+    unless ($memcached->set(':caching' => 1)) {
+	$memcached = undef;
+	$has_memcached = undef;
+    }
+    return $memcached;
+}
+
+    
 # Caches result from block enclosed by cache { ... }.  File/linenumber
 # of the "cache" keyword is used as the caching key.  If additional
 # arguments are given after the sub to cache, they are used to further
@@ -56,7 +67,7 @@ package DB;
 
 sub LXRng_Cached_cached(&;@) {
     my ($func, @args) = @_;
-    if ($LXRng::Cached::memcached) {
+    if (LXRng::Cached::handle) {
 	my ($pkg, $file, $line) = caller(0);
 	my $params;
 	unless (@args > 0) {
@@ -67,10 +78,10 @@ sub LXRng_Cached_cached(&;@) {
 	$params = Storable::freeze(\@args);
 
 	my $key = Digest::SHA1::sha1_hex(join("\0", $file, $line, $params));
-	my $val = $LXRng::Cached::memcached->get($key);
+	my $val = LXRng::Cached::handle->get($key);
 	unless ($val) {
 	    $val = [$func->()];
-	    $LXRng::Cached::memcached->set($key, $val, 3600);
+	    LXRng::Cached::handle->set($key, $val, 3600);
 	    # warn "cache miss for $key (".join(":", $file, $line, @args).")\n";
 	}
 	else {
