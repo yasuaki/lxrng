@@ -74,6 +74,7 @@ sub print_markedup_file {
 			   {'context' => $context,
 			    'dir_listing' => $markup->listing})
 	    or die $template->error();
+	return;
     }
     else {
 	# Grmble.  We assume the identifiers to markup are identical
@@ -132,6 +133,7 @@ sub print_markedup_file {
 	    }
 	    print("</span></ol></pre>\n");
 	}
+	return $shaid;
     }
 }
 
@@ -257,6 +259,7 @@ sub source {
 			    'dir_listing' => $markup->listing,
 			    'is_dir' => 1})
 	    or die $template->error();
+	return;
     }
     else {
 	my $html = '';
@@ -271,8 +274,10 @@ sub source {
 	# can't do progressive rendering of its templates, so we cheat...
 	my ($pre, $post) = split('<!--FILE_CONTENT-->', $html);
 	print($pre);
-	print_markedup_file($context, $template, $node);
+	my $id = print_markedup_file($context, $template, $node);
 	print($post);
+
+	return $id;
     }
 
     # TODO: This is potentially useful, in that it resets the stream
@@ -280,6 +285,7 @@ sub source {
     # 0.18, this seems to truncate the stream.  Not strictly needed
     # for CGI, reexamine when adapting to mod_perl.
     ## binmode(\*STDOUT, ":pop") if $gzip;
+    
 }
 
 #sub ident {

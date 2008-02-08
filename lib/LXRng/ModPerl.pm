@@ -31,8 +31,15 @@ use Data::Dumper;
 sub handler {
     my ($req) = @_;
 
-    my $query = CGI->new();
-    LXRng::Web->handle($query);
+    my @tstart = times();
+    my $query  = CGI->new();
+    my $qident = LXRng::Web->handle($query);
+    my @tstop  = times();
+
+    $req->notes->add("lxr_prof" =>
+		     sprintf("u:%d, s:%d, cu:%d, cs:%d",
+			     map { 1000*($tstop[$_]-$tstart[$_]) } (0 .. 3)));
+    $req->notes->add("lxr_ident" => $qident);
 
     return Apache2::Const::OK;
 }
