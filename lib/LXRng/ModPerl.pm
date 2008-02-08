@@ -37,7 +37,7 @@ sub handler {
     my @tstop  = times();
 
     $req->notes->add("lxr_prof" =>
-		     sprintf("u:%d, s:%d, cu:%d, cs:%d",
+		     sprintf("U/S/CU/CS: %d/%d/%d/%d ms",
 			     map { 1000*($tstop[$_]-$tstart[$_]) } (0 .. 3)));
     $req->notes->add("lxr_ident" => $qident);
 
