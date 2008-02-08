@@ -41,7 +41,7 @@ sub new {
 	my $path = $ENV{'REQUEST_URI'};
 	$path =~ s/\?.*//;
 	$path =~ s,/+,/,g;
-	$$self{'req_url'} = $host.$path;
+	$$self{'req_base'} = $host.$ENV{'SCRIPT_NAME'};
 
 	foreach my $p ($args{'query'}->param) {
 	    $$self{'params'}{$p} = [$args{'query'}->param($p)];
@@ -59,6 +59,11 @@ sub new {
 	    if ($path =~ m,^\Q$base\E(\Q$tree\E|)([+][^/]+|)(?:$|/)(.*),) {
 		@$self{'tree', 'path'} = ($1.$2, $3);
 		last;
+	    }
+	}
+	unless ($$self{'tree'}) {
+	    if ($ENV{'PATH_INFO'} =~ m,^/?([^/]+)/?(.*),) {
+		@$self{'tree', 'path'} = ($1, $2);
 	    }
 	}
 
@@ -196,7 +201,7 @@ sub base_url {
 
     my $base = $self->config->{'base_url'};
     unless ($base) {
-	$base = $$self{'req_url'};
+	$base = $$self{'req_base'};
     }
 
     $base =~ s,/*$,/,;
