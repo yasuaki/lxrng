@@ -1,0 +1,16 @@
+
+Alias @@LXRURL@@/favicon.ico "@@LXRROOT@@/webroot/favicon.ico"
+Alias @@LXRURL@@/robots.txt  "@@LXRROOT@@/webroot/robots.txt"
+Alias @@LXRURL@@/.static     "@@LXRROOT@@/webroot/.static"
+
+# For LXRng installed directly in the web site root, use
+#   ScriptAlias /            "@@LXRROOT@@/webroot/lxr.cgi/"
+# otherwise use (no trailing slash):
+#   ScriptAlias /@@LXRURL@@  "@@LXRROOT@@/webroot/lxr.cgi"
+
+<Directory "@@LXRROOT@@/webroot/">
+  Options ExecCGI
+  AllowOverride None
+  Order deny,allow
+  Allow from all
+</Directory>

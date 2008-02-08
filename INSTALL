@@ -20,6 +20,8 @@ DEPENDENCIES
   - HTML::Entities [libhtml-parser-perl]
   - Template [libtemplate-perl]
 
+* (For gzip content transfer compression: PerlIO::gzip)
+
 * "Exuberant ctags", runnable as ctags-exuberant somewhere in the
    current $PATH. [exuberant-ctags]
 
@@ -46,13 +48,25 @@ INSTALLATION
 * Cross reference your source repository
   $ lxr-genxref <my-tree>
 
-* Copy the apache2-site.conf-dist to apache2-site.conf and adjust.
+* Set up apache config
+  Determine values for
+    @@LXRURL@@
+      Subdirectory of your web site to show the LXRng interface,
+      "", "/lxr", "/tools/lxr" or other.
+    @@LXRROOT@@
+      Installation path of LXRng suite.
+
+  Choose cgi or mod_perl mode of operation.  Based on 
+  apache2-site.conf-dist-[cgi|mod_perl], generate apache2-site.conf
+  to suit your local requirements.
+
+  Add to global Apache2 configuration:
   # ln -s <lxr-path>/apache2-site.conf /etc/apache2/sites-enabled/010-lxrng
   # /etc/init.d/apache2 reload
   (Or equivalent, depending on operating system (distribution) flavor.)
 
 * (Generate PNG icons)
-  $ make -C <lxr-path>/cgi-bin/gfx
+  $ make -C <lxr-path>/webroot/.static/gfx
 
 * Point web browser to configured web location.
 

@@ -1,0 +1,32 @@
+PerlInitHandler Apache2::Reload
+PerlOptions +GlobalRequest
+PerlRequire @@LXRROOT@@/lxrng_mod_perl.pl
+PerlModule LXRng::ModPerl
+
+Alias /@@LXRURL@@ "@@LXRROOT@@/webroot/"
+
+<Directory "@@LXRROOT@@/webroot/">
+  Options ExecCGI
+  AllowOverride None
+  Order deny,allow
+  Allow from all
+
+  <Files *>
+    SetHandler perl-script
+    PerlResponseHandler LXRng::ModPerl
+  </Files>
+
+  <Files favicon.ico>
+    SetHandler send-as-is
+  </Files>
+
+  <Files robots.txt>
+    SetHandler send-as-is
+  </Files>
+</Directory>
+
+<Directory "@@LXRROOT@@/webroot/.static/">
+  <Files *>
+    SetHandler send-as-is
+  </Files>
+</Directory>
