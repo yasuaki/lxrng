@@ -1,3 +1,4 @@
+[% TRY %][% INCLUDE site/tree_list.tt2 %][% CATCH DEFAULT %]
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
@@ -29,12 +30,10 @@
 
     <p>
     <ul>
-      <li><a href="linux">Linux 2.6.11 -</a>
-      <li><a href="linux-bk">Linux 2.5.0 - 2.6.11</a>
-      <li><a href="linux-old">Linux 0.01 - 2.4.31</a>
-      <li><a href="linuxbiosv2">LinuxBIOS v2</a>
+      <li><a href="linux">Linux</a>
     </ul>
     </p>
   </body>
 </html>
 [% INCLUDE footer.tt2 %]
+[% END %]
