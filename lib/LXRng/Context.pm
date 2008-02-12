@@ -22,6 +22,8 @@ package LXRng::Context;
 use strict;
 use LXRng;
 
+use vars qw($cached_config $cached_config_stat $cached_config_age);
+
 sub new {
     my ($self, %args) = @_;
 
@@ -105,6 +107,18 @@ sub read_config {
 
     my $confpath = $LXRng::ROOT.'/lxrng.conf';
 
+    if ($cached_config) {
+	my @stat = stat($confpath);
+	if (@stat and
+	    $stat[9] == $cached_config_stat and 
+	    time - $cached_config_age < 3600)
+	{
+	    return $cached_config;
+	}
+	$cached_config_stat = $stat[9];
+	$cached_config_age = time;
+    }
+
     if (open(my $cfgfile, $confpath)) {
 	my @config = eval("use strict; use warnings;\n".
 			  "#line 1 \"configuration file\"\n".
@@ -113,6 +127,8 @@ sub read_config {
 
 	die("Bad configuration file format\n")
 	    unless @config == 1 and ref($config[0]) eq 'HASH';
+
+	$cached_config = $config[0];
 	return $config[0];
     }
     else {
