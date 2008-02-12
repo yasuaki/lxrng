@@ -49,9 +49,9 @@ sub make_format_newline {
 	$line++;
 	$nl = safe_html($nl);
 
-	return qq{</span>$nl<li>}.
-	    qq{<a href="$name#L$line" class="line"><span></span></a>}.
-	    qq{<a id="L$line" name="L$line"></a><span class="line">};
+	return qq{$nl}.
+	    qq{<a href="$name#L$line" class="line">$line</a>}.
+	    qq{<a id="L$line" name="L$line"></a>};
     }
 }
 

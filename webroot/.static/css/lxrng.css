@@ -150,6 +150,10 @@ span.close-button {
 	content: attr(id);
 } */
 
+pre {
+	margin-left: 3.8em;
+}
+
 a.line {
 	position: absolute;
 	top: auto;
@@ -157,39 +161,13 @@ a.line {
 	height: 2ex;
 	width: 3em;
 	text-align: right;
+	padding-right: 3px;
 
 	border: solid;
 	border-width: 1px;
 	border-color: #000000;
 	margin-left: 3px;
-}
-
-a.line span { 
-	position: absolute;
-	top: auto;
-	height: 2ex;
-	left: 0px;
-	background: #6c6c6c;
-	filter: alpha(opacity=10);
-	moz-opacity: .10;
-	opacity: .10;
-	width: 3em;
-}
-
-
-pre#file_contents li { 
-	color: blue;
-}
-
-span.line {
-	position: absolute;
-	left: 4em;
-	color: black;
-	white-space: pre;
-}
-
-pre {
-	margin-left: 0.7em;
+	background: #F0F0F0;
 }
 
 a img { 

@@ -190,6 +190,59 @@ function load_file(tree, file, ver, line) {
 	return false;
 }
 
+
+function ajaxify_link_handlers(links) {
+	var i;
+	for (i = 0; i < links.length; i++) {
+		if (links[i].className == 'fref') {
+			links[i].onclick = ajax_nav;
+		}
+		else if (links[i].className == 'line') {
+			links[i].onclick = ajax_jumpto_line;
+		}
+		else if (links[i].className == 'sref' || 
+		    links[i].className == 'falt')
+		{
+			links[i].onclick = ajax_lookup_anchor; 
+		}
+
+	}
+}
+
+function load_next_pending_fragment() {
+	var pre = document.getElementById('file_contents');
+	if (!pre)
+		return;
+
+	for (var i = 0; i < pre.childNodes.length; i++) {
+		if ((pre.childNodes[i].nodeName == 'DIV') &&
+		    (pre.childNodes[i].className == 'pending'))
+		{
+			pjx_load_fragment(['tree__' + pending_tree,
+					   'frag__' + pre.childNodes[i].id],
+					  [load_fragment_finalize]);
+			return;
+		}
+	}
+}
+
+function load_fragment_finalize(content) {
+	var split = content.indexOf('|');
+	var div = document.getElementById(content.substr(0, split));
+	if (!div)
+		return;
+
+	div.innerHTML = content.substr(split+1);
+	div.className = 'done';
+
+	var links = div.getElementsByTagName('a');
+	ajaxify_link_handlers(links);
+	load_next_pending_fragment();
+
+//	if (location.hash)
+//		location.hash = location.hash;
+}
+
 function load_file_finalize(content) {
 	var res = document.getElementById('content');
 	res.innerHTML = 'Done';
@@ -198,7 +251,7 @@ function load_file_finalize(content) {
 	head.innerHTML = '<a class=\"fref\" href=\".\">' + pending_tree + '</a>';
 	var path_walked = '';
 	var elems = pending_file.split(/\//);
-	for (var i=0; i<elems.length; i++) {
+	for (var i = 0; i < elems.length; i++) {
 		if (elems[i] != '') {
 			head.innerHTML = head.innerHTML + '/' +
 				'<a class=\"fref\" href=\"' + path_walked + elems[i] +
@@ -213,13 +266,6 @@ function load_file_finalize(content) {
 		full_tree = full_tree + '+' + pending_ver;
 	}
 	var full_path = full_tree + '/' + pending_file.replace(/^\/?/, '');
-
-	var pre = document.getElementById('file_contents');
-	if (pre && pre.className == 'partial') {
-		pjx_load_file(['tree__' + pending_tree, 'file__' + pending_file,
-			       'v__' + pending_ver, 'full__1', 'NO_CACHE'],
-			      [load_file_finalize]);
-	}
 
 	var print = document.getElementById('lxr_print');
 	var dirlist = document.getElementById('content_dir');
@@ -257,22 +303,9 @@ function load_file_finalize(content) {
 	loaded_ver = pending_ver;
 	hash_check = setTimeout('check_hash_navigation()', 50);
 
-//	TODO: This really takes oodles of time.  Consider coding into html.
-	var i;
-	for (i = 0; i < document.links.length; i++) {
-		if (document.links[i].className == 'fref') {
-			document.links[i].onclick = ajax_nav;
-		}
-		else if (document.links[i].className == 'line') {
-			document.links[i].onclick = ajax_jumpto_line;
-		}
-		else if (document.links[i].className == 'sref' || 
-		    document.links[i].className == 'falt')
-		{
-			document.links[i].onclick = ajax_lookup_anchor; 
-		}
+	ajaxify_link_handlers(document.links);
 
-	}
+	load_next_pending_fragment();
 }
 
 function load_content() {

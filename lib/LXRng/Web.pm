@@ -34,13 +34,17 @@ use IO::Handle;
 use Digest::SHA1 qw(sha1_hex);
 use CGI::Ajax;
 use File::Temp qw(tempdir tempfile);
+use File::Path qw(mkpath);
 use POSIX qw(waitpid);
 
 use constant PDF_LINELEN => 95;
 use constant PDF_CHARPTS => 6.6;
 
+# Cache must be purged if this is changed.
+use constant FRAGMENT_SIZE => 250;
+
 use vars qw($has_gzip_io);
-# eval { require PerlIO::gzip; $has_gzip_io = 1; };
+eval { require PerlIO::gzip; $has_gzip_io = 1; };
 
 # Return 1 if gzip compression of html is desired.
 
@@ -77,39 +81,49 @@ sub print_markedup_file {
 	return;
     }
     else {
-	# Grmble.  We assume the identifiers to markup are identical
-	# from one version to another, but if the same revision of a
-	# file exists both in an indexed and un-indexed release, one
-	# of them will have its identifiers highlighted and the other
-	# not.  So we can't share a cache slot across releases without
-	# adding some extra logic here.  Bummer.
-	# TODO: Resolve by caching only accesses to releases that are
-	# is_indexed.
+	my $line   = 0;
+	my $focus  = 1;
+	my $fline  = $context->param('line');
+
+	$focus = $fline < 100 if defined($fline);
+    
 	my $shaid = sha1_hex(join("\0", $node->name, $node->revision,
 				  $context->release));
 	my $cfile;
+	$shaid =~ s,^(..)(..),$1/$2/,;
 	$cfile = $context->config->{'cache'}.'/'.$shaid
 	    if exists $context->config->{'cache'};
 
-	if ($cfile and -e $cfile) {
-	    open(my $cache, '<', $cfile);
+	if ($cfile and -d $cfile) {
+	    print("<pre id=\"file_contents\">");
+	    while (-r "$cfile/$line") {
+		print("<div class=\"".($focus ? "done" : "pending").
+		      "\" id=\"$shaid/$line\">");
+		if ($focus) {
+		    open(my $cache, '<', "$cfile/$line");
+		    my $buf;
+		    while (read($cache, $buf, 16384) > 0) {
+			print($buf);
+		    }
+		    close($cache);
+		}
+		else {
+		    print("\n" x FRAGMENT_SIZE);
+		}
+		print("</div>");
+		$line += FRAGMENT_SIZE;
 
-	    my $focus = $context->param('line') || 0;
-	    $focus = 0 if $context->param('full');
-	    my $class = $focus ? 'partial' : 'full';
-	    my $start = $focus > 5 ? " start=".($focus - 5) : "";
-	    print("<pre id=\"file_contents\" class=\"$class\"><ol$start><span>");
-	    while (<$cache>) {
-		next if $focus and $. < $focus - 5;
-		print($_);
-		last if $focus and $. > $focus + 70;
+		if (defined($fline)) {
+		    $focus = ($line <= ($fline + 100)
+			      and $line > ($fline - FRAGMENT_SIZE));
+		}
 	    }
-	    print("</span></ol></pre>");
-	    close($cache);
+	    print("</pre>\n");
 	}
 	else {
 	    my $cache;
-	    open($cache, '>', $cfile) if $cfile;
+	    mkpath($cfile, 0, 0777);
+	    open($cache, '>', "$cfile/0") if $cfile;
 	    my $handle = $node->handle();
 	    LXRng::Lang->init($context);
 	    my $lang   = LXRng::Lang->new($node);
@@ -117,21 +131,39 @@ sub print_markedup_file {
 						   @{$lang->parsespec});
 	    my $markup = LXRng::Markup::File->new('context' => $context);
 	    my $subst  = $lang->markuphandlers($context, $node, $markup);
-    
-	    # Possible optimization: store cached file also as .gz,
-	    # and pass that on if the client accepts gzip-encoded
-	    # data.  Saves us from compressing the cached file each
-	    # time it's needed, but requires a bit of fiddling with
-	    # perlio and the streams to get right.  Also messes up
-	    # partial transfers.
-	    print("<pre id=\"file_contents\" class=\"full\"><ol><span>");
+
+	    print("<pre id=\"file_contents\">".
+		  "<div class=\"".($focus ? "done" : "pending").
+		  "\" id=\"$shaid/0\">");
 	    while (1) {
-		my @frags = $markup->markupfile($subst, $parse);
+		my @frags = map { split(/(?<=\n)/, $_) }
+				  $markup->markupfile($subst, $parse);
 		last unless @frags;
-		print(@frags);
-		print($cache @frags) if $cache;
+		foreach my $f (@frags) {
+		    print($f) if $focus;
+		    print($cache $f) if $cache;
+		    if ($f =~ /\n$/s) {
+			$line++;
+			if ($line % FRAGMENT_SIZE == 0) {
+			    print("\n" x FRAGMENT_SIZE) unless $focus;
+			    if (defined($fline)) {
+				$focus = ($line <= ($fline + 100)
+					  and $line > ($fline - FRAGMENT_SIZE));
+			    }
+			    print("</div>".
+				  "<div class=\"".
+				  ($focus ? "done" : "pending").
+				  "\" id=\"$shaid/$line\">");
+			    if ($cache) {
+				close($cache);
+				open($cache, '>', "$cfile/$line");
+			    }
+			}
+		    }
+		}
 	    }
-	    print("</span></ol></pre>\n");
+	    print("</div></pre>\n");
+	    close($cache) if $cache;
 	}
 	return $shaid;
     }
@@ -161,6 +193,7 @@ sub source {
 
     my $pjx = CGI::Ajax->new('pjx_search' => '',
 			     'pjx_load_file' => '',
+			     'pjx_load_fragment' => '',
 			     'pjx_releases' => '');
     $pjx->js_encode_function('escape');
 
@@ -181,10 +214,17 @@ sub source {
 		my $base = $context->base_url(1);
 		$base =~ s,/*$,/ajax+*/,;
 
+		# This is a bit fragile, but only covers a relatively
+		# esoteric corner case.  (CGI::Ajax splits results on
+		# __pjx__, and there doesn't seem to be any provisions
+		# for escaping any randomly occurring split markers.)
+		my $js = $pjx->show_javascript();
+		$js =~ s/var splitval.*var data[^;]+/var data = rsp/;
+
 		$template->process('main.tt2',
 				   {'context'    => $context,
 				    'base_url'   => $base,
-				    'javascript' => $pjx->show_javascript(),
+				    'javascript' => $js,
 				    'is_ajax' => 1})
 		    or die $template->error();
 	    }
@@ -443,11 +483,13 @@ sub handle_ajax_request {
     my $gzip = do_compress_response($query);
     
     # $query->no_cache(1); FIXME -- not available with CGI.pm.
-    print($query->header(-type => 'text/html',
-			 -charset => 'utf-8',
-			 -cache-control => 'no-store, no-cache, must-revalidate',
-			 $gzip ? (-content_encoding => 'gzip') : ()));
+    my %headers = (-type => 'text/html',
+		   -charset => 'utf-8');
+    $headers{'-cache-control'} = 'no-store, no-cache, must-revalidate'
+	unless $context->param('fname') eq 'pjx_load_fragment';
+    $headers{'-content_encoding'} = 'gzip' if $gzip;
 
+    print($query->header(%headers));
     binmode(\*STDOUT, ":gzip") if $gzip;
 
     if ($context->param('fname') eq 'pjx_load_file') {
@@ -455,6 +497,22 @@ sub handle_ajax_request {
 	my $node = $rep->node($context->param('file'), $context->release);
 	print_markedup_file($context, $template, $node);
 	
+    }
+    elsif ($context->param('fname') eq 'pjx_load_fragment') {
+	my $shaid = $context->param('frag');
+	return unless $shaid =~ 
+	    m|^[0-9a-z]{2}/[0-9a-z]{2}/[0-9a-z]{36}/[0-9]+$|;
+	return unless exists $context->config->{'cache'};
+	my $cfile = $context->config->{'cache'}.'/'.$shaid;
+	return unless -e $cfile;
+	open(my $cache, '<', $cfile) or return;
+	
+	print($shaid.'|');
+	my $buf;
+	while (read($cache, $buf, 16384) > 0) {
+	    print($buf);
+	}
+	close($cache);
     }
     elsif ($context->param('fname') eq 'pjx_search') {
 	if ($context->param('ajax_lookup') =~
