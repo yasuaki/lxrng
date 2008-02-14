@@ -459,7 +459,7 @@ sub get_symbol_usage {
 	$dbh->prepare(qq{
 	    select f.path, u.lines
 		from ${pre}usage u, ${pre}filereleases fr,
-			${pre}files f, ${pre} revisions r
+			${pre}files f, ${pre}revisions r
 		where u.id_symbol = $symid
 		and u.id_rfile = fr.id_rfile and fr.id_release = ?
 		and u.id_rfile = r.id and r.id_file = f.id
