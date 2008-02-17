@@ -52,13 +52,12 @@ sub identifier_re {
 }
 
 my $_reserved ||= { map { $_ => 1 }
-		    qw(asm auto break case char continue default do
-		       double else enum extern float for fortran goto
-		       if int long register return short signed sizeof
-		       static struct switch typedef union unsigned
-		       void volatile while
-		       #define #else #endif #if #ifdef #ifndef #include
-		       #undef)};
+		    qw(asm auto break case char const continue default
+		       do double else enum extern float for fortran
+		       goto if int long register return short signed
+		       sizeof static struct switch typedef union
+		       unsigned void volatile while #define #else
+		       #endif #if #ifdef #ifndef #include #undef)};
 
 sub reserved {
     return $_reserved;
