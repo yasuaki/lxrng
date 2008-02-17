@@ -1,0 +1,39 @@
+% -*- latex -*-
+
+% LXRng formatting functions
+\makeatletter
+\newbox\lx@box
+\newdimen\lx@charwd\advance\lx@charwd 6.4pt
+\newdimen\lx@wrapped
+\renewcommand\\{\newline\advance\lx@used-\lx@used\advance\lx@wrapped-\lx@wrapped}
+\newdimen\lx@used
+\newdimen\lx@linewd\advance\lx@linewd\textwidth\advance\lx@linewd-1em
+
+% Words
+\def\lxlt#1{\setbox\lx@box\hbox{#1}%
+\advance\lx@used\wd\lx@box%
+\ifdim\lx@used>\lx@linewd%
+\hspace*{-\lx@used}\hspace{\wd\lx@box}\hspace*{\lx@linewd}%
+\raisebox{-2pt}{\ArrowBoldRightStrobe}\\%
+\raisebox{-2pt}{\ArrowBoldDownRight} %
+\advance\lx@wrapped\lx@linewd
+\advance\lx@used-\lx@used%
+\advance\lx@used 3\lx@charwd%
+\advance\lx@used\wd\lx@box%
+\else\fi%
+\usebox\lx@box}
+
+% Alignment
+\def\lxalign#1{\hspace*{#1\lx@charwd}\hspace*{-\lx@wrapped}\hspace*{-\lx@used}%
+\advance\lx@used-\lx@used\advance\lx@used #1\lx@charwd}
+
+% Fixed-width chars
+\def\lxgr#1{\lxlt{\makebox[\lx@charwd][l]{#1}}}
+
+% Whitespace
+\def\lxws#1{\setbox\lx@box\hbox{#1}\hspace*{\wd\lx@box}\advance\lx@used\wd\lx@box}
+
+\newcommand\lxrln[1]{\tiny\hspace*{-4em}\makebox[4em][r]{#1\hspace{1.5ex}}\small}
+\def\dash{\raise2.1pt\hbox{\rule{5pt}{0.3pt}}\hspace{1pt}}
+
+\makeatother

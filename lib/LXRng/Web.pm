@@ -37,9 +37,6 @@ use File::Temp qw(tempdir tempfile);
 use File::Path qw(mkpath);
 use POSIX qw(waitpid);
 
-use constant PDF_LINELEN => 95;
-use constant PDF_CHARPTS => 6.6;
-
 # Cache must be purged if this is changed.
 use constant FRAGMENT_SIZE => 250;
 
@@ -592,25 +589,25 @@ sub generate_pdf {
     my $tempdir = tempdir(CLEANUP => 1);
 
     my %tspecials = (
-	'$'	=> '\$',	'*'	=> "\$\\ast\$",
-	'&'	=> '\&',	'%'	=> '\%',
-	'#'	=> '\#',	'_'	=> '\_',
-	'^'	=> '\^{}',	'{'	=> '\{',
-	'}'	=> '\}',	'|'	=> "\$|\$",
-	'['	=> '{[}',	']'	=> '{]}',
-	"'"	=> "{'}",	"\""	=> "\\string\"",
-	'~'	=> '\~{}',	'<'	=> "\$<\$",
-	'>'	=> "\$>\$",	"\\"	=> "\$\\backslash\$",
-	'-'	=> '\dash{}',
+		     '$'	=> '\$',	'*'	=> "\$\\ast\$",
+		     '&'	=> '\&',	'%'	=> '\%',
+		     '#'	=> '\#',	'_'	=> '\_',
+		     '^'	=> '\^{}',	'{'	=> '\{',
+		     '}'	=> '\}',	'|'	=> "\$|\$",
+		     '['	=> '{[}',	']'	=> '{]}',
+		     "'"	=> "{'}",	"\""	=> "\\string\"",
+		     '~'	=> '\~{}',	'<'	=> "\$<\$",
+		     '>'	=> "\$>\$",	"\\"	=> "\$\\backslash\$",
+		     '-'	=> '\dash{}',
 # These are latin1-replacements, and interact badly with utf8...
-	"\242"	=> '?',		"\244"	=> '?',
-	"\245"	=> '?',		"\246"	=> '?',
-	"\252"	=> "\$\252\$",	"\254"	=> "\$\254\$",
-	"\255"	=> "\\dash{}",	"\260"	=> "\$\260\$",
-	"\261"	=> "\$\261\$",	"\262"	=> "\$\262\$",
-	"\263"	=> "\$\263\$",	"\265"	=> "\$\265\$",
-	"\271"	=> "\$\271\$",	"\272"	=> "\$\272\$",
-	"\327"	=> "\$\327\$",	"\367"	=> "\$\367\$",
+		     "\242"	=> '?',		"\244"	=> '?',
+		     "\245"	=> '?',		"\246"	=> '?',
+		     "\252"	=> "\$\252\$",	"\254"	=> "\$\254\$",
+		     "\255"	=> "\\dash{}",	"\260"	=> "\$\260\$",
+		     "\261"	=> "\$\261\$",	"\262"	=> "\$\262\$",
+		     "\263"	=> "\$\263\$",	"\265"	=> "\$\265\$",
+		     "\271"	=> "\$\271\$",	"\272"	=> "\$\272\$",
+		     "\327"	=> "\$\327\$",	"\367"	=> "\$\367\$",
 		     );
 
     my $tspecials = join('', map { quotemeta($_) } keys(%tspecials));
@@ -630,7 +627,7 @@ sub generate_pdf {
     my $resre;
     if (%$res) {
 	$resre = '(?:(?<=[\s\W])|^)('.
-	    join('|', map { my $c = $_; $c =~ s/\#/\\\#/g; quotemeta($c) }
+	    join('|', map { "\Q$_\E" }
 		 sort { length($b) <=> length($a) }
 		 keys %$res).')(?=$|[\s\W])';
     }
@@ -639,10 +636,12 @@ sub generate_pdf {
     my $row = 1;
     my $col = 0;
     my $line = '\\lxrln{1}';
+    my %ptabs = ();
+    my %ntabs = ();
 
     while (1) {
 	my ($btype, $frag) = $parse->nextfrag;
-    
+	
 	last unless defined $frag;
 
 	$btype ||= 'code';
@@ -655,6 +654,8 @@ sub generate_pdf {
 
 	    if ($part eq "\n") {
 		push(@lines, $line);
+		%ptabs = %ntabs;
+		%ntabs = ();
 
 		$col = 0;
 		$row++;
@@ -667,56 +668,61 @@ sub generate_pdf {
 		next;
 	    }
 
-	    if ($part =~ /^(.*?   +)(.*)/) {
-		unshift(@parts, $2);
+	    if ($part =~ /^(.*?)( +)(.*)/) {
+		unshift(@parts, $3);
 		$part  = $1;
-		$align = 1;
+		if (length($2) > 2 or $ptabs{$col + length($1) + length($2)}) {
+		    $align = 1;
+		    $col += length($2);
+		    $ntabs{$col + length($part)} = 1;
+		}
+		else {
+		    $part .= $2;
+		}
 	    }
-
 	    $col += length($part);
 
-	    if ($col > PDF_LINELEN) {
-		unshift(@parts, 
-			substr($part, PDF_LINELEN - $col, length($part), ''));
-		if ($part =~ s/([^\s_,\(\)\{\}\/\=\-\+\*\<\>\[\]\.]+)$//) {
-		    if (length($1) < 20) {
-			unshift(@parts, $1);
-		    }
-		    else {
-			$part .= $1;
-		    }
-		}
-		$align = 0;
-		$cont  = 1;
-	    }
-
-	    $part =~ s(([$tspecials\0-\010\013\014\016-\037\200-\240]))
-		(exists $tspecials{$1} ? $tspecials{$1} : '?')ge;
-	    
 	    if ($btype eq 'code') {
-		$part =~ s/$resre/\\textbf{$1}/g if $resre;
+		$part =~ s/$resre/\\bf{}\\sffamily{}$1\\sf{}/g if $resre;
 	    }
 	    elsif ($btype eq 'include') {
-		$part =~ s/$resre/\\textbf{$1}/ if $resre;
+		# This is a bit of a special treatment for C...
+		$part =~ s((<[^>]*>|\"[^\"]*\")|$resre)
+		    ($1 ? "$1" : "\\bf{}\\sffamily{}$2\\sf{}")ge if $resre;
 	    }
 	    elsif ($btype eq 'comment') {
-		$part = '\textit{'.$part.'}';
+		$part = '\\em{}'.$part.'\\sf{}';
 	    }
 	    elsif ($btype eq 'string') {
-		$part = '\texttt{'.$part.'}';
+		$part = '\\tt{}'.$part.'\\sf{}';
 	    }
 
-	    # Common fixed-width "ascii-art" characters.
-	    $part =~ s/(\$\\ast\$|=)/'\\makebox['.PDF_CHARPTS."pt][c]{$1}"/ge;
+	    $part =~ s{(\\(?:sf|bf|em|tt|sffamily)\{\})|
+			   ([*=])|
+			   ([ ]+)|
+			   ([$tspecials\0-\010\013\014\016-\037\200-\240])|
+			   ([[:alnum:]]+|.)}
+	    {
+		if (defined $1) {
+		    $1;
+		}
+		elsif (defined $2) {
+		    "\\lxgr{".(exists $tspecials{$2} ? $tspecials{$2} : $2)."}";
+		}
+		elsif (defined $3) {
+		    "\\lxws{$3}";
+		}
+		elsif (defined $4) {
+		    "\\lxlt{".(exists $tspecials{$4} ? $tspecials{$4} : '?')."}";
+		}
+		else {
+		    "\\lxlt{$5}";
+		}
+	    }gex;
+
 	    $line .= $part;
 	    if ($align) {
-		$line = '\\makebox['.int($col * PDF_CHARPTS).
-		    'pt][l]{'.$line.'}';
-	    }
-	    if ($cont) {
-		push(@lines, "$line\\raisebox{-2pt}{\\ArrowBoldRightStrobe}");
-		$line = '\\raisebox{-2pt}{\\ArrowBoldDownRight} ';
-		$col  = 3;
+		$line .= "\\lxalign{$col}";
 	    }
 	}
     }
