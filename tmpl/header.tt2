@@ -10,19 +10,19 @@
 
       var startup_tree = location.hash.match(/^#([^/+]+)([+][^/]*|)/);
       if (startup_tree) {
-	var base = '[% base_url %]';
+	var base = '[% base_url | html %]';
 	base = base.replace(/\/ajax[+][*]/, '/' + startup_tree[1] + '+*');
   	document.write('<base href="' + base + '">');
       }
       else {
-  	document.write('<base href="[% base_url %]">');
+  	document.write('<base href="[% base_url | html %]">');
   	document.write('<meta http-equiv="Refresh" content="1;+trees">');
 	use_ajax_navigation = 0;
       }
       [% END %]
     </script>
     [% IF !is_ajax %]
-    <base href="[% base_url %]">
+    <base href="[% base_url | html %]">
     [% END %]
     <script type="text/javascript" src="../.static/js/lxrng-funcs.js"></script>
     <link rel="stylesheet" href="../.static/css/lxrng.css" type="text/css" title="LXRng">
@@ -32,8 +32,8 @@
     <script type="text/javascript">
     </script>
 
-    <title>LXR [% context.tree -%]/
-      [%- FOREACH elem = context.path_elements %][% elem.node %][% END %]
+    <title>LXR [% context.tree | html -%]/
+      [%- FOREACH elem = context.path_elements %][% elem.node | html %][% END %]
     </title>
   </head>
 
@@ -47,15 +47,15 @@
       <span class="lxr_title">
 	<span class="lxr_logo"><a href="..">LXR</a></span>
 	<span id="current_path">
-	  <a href="../[% context.vtree %]/">[% context.tree %]/</a>[%
+	  <a href="../[% context.vtree | html %]/">[% context.tree | html%]/</a>[%
 	  FOREACH elem = context.path_elements
-	  %]<a href="[% elem.path %]">[% elem.node %]</a>[%
+	  %]<a href="[% elem.path | html %]">[% elem.node | html %]</a>[%
 	  END %]
 	</span>
 	<img src="../.static/gfx/rolldown.png" alt="History">
         <span id="lxr_print"
           [% IF is_ajax || node.name.match('/$') %]style="display: none;"[% END %]>
-	  <form action="+print=[% node.name %]" method="post" id="print_form">
+	  <form action="+print=[% node.name | html %]" method="post" id="print_form">
 	    <button type="submit" class="print">
       	      <img src="../.static/gfx/print.png" alt="Print">
             </button>
@@ -66,15 +66,15 @@
       <div class="lxr_menu">
 	<span class="lxr_version">
 	  <a [% IF is_ajax %]href="#" onclick="return previous_version();"[% ELSE %]
-	     href="../[% context.tree %]+[% ver_prev %]/[% node.name %]"[% END %]>
+	     href="../[% context.tree | html %]+[% ver_prev | html %]/[% node.name | html %]"[% END %]>
 	    <img src="../.static/gfx/left.png" alt="&lt;&lt;"></a>
-	  <form action="[% node.name %]" method="get">
+	  <form action="[% node.name | html %]" method="get">
 	    <span id="ver_select">
 	      [% INCLUDE release_select.tt2, context = context %]
 	    </span>
 	  </form>
 	  <a [% IF is_ajax %]href="#" onclick="return next_version();"[% ELSE %]
-	     href="../[% context.tree %]+[% ver_next %]/[% node.name %]"[% END %]>
+	     href="../[% context.tree | html %]+[% ver_next | html %]/[% node.name | html %]"[% END %]>
 	    <img src="../.static/gfx/right.png" alt="&gt;&gt;"></a>
 	</span>
 
@@ -87,7 +87,7 @@
 	</span>
 
 	<span class="lxr_prefs">
-	  <a href="+prefs?return=[% node.name %]"
+	  <a href="+prefs?return=[% node.name | html %]"
 	     onclick="return ajax_prefs();">
 	    Prefs
 	  </a>

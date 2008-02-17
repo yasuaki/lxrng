@@ -170,6 +170,28 @@ sub print_markedup_file {
     }
 }
 
+sub print_error {
+    my ($context, $template, $query, $error) = @_;
+
+    my $tmpl;
+    if ($context->config and $context->config->{'repository'}) {
+	$tmpl = 'error.tt2';
+    }
+    else {
+	$tmpl = 'bare_error.tt2';
+    }
+
+    print($query->header(-type => 'text/html',
+			 -charset => 'utf-8'));
+
+    my $base = $context->base_url();
+    $template->process($tmpl,
+		       {'context' => $context,
+			'base_url' => $base,
+			'error' => $error})
+	or die $template->error();
+}    
+
 sub print_tree_list {
     my ($context, $template) = @_;
 
@@ -243,10 +265,18 @@ sub source {
 
     my $ver = $context->release;
     my $rep = $context->config->{'repository'};
-    die "No tree given" unless $rep;
+    unless ($rep) {
+	print_error($context, $template, $query,
+		    "No/unknown tree indicated");
+	return;
+    }
 
     my $node = $rep->node($context->path, $ver);
-    die "Node not found: ".$context->path." ($ver)" unless $node;
+    unless ($node) {
+	print_error($context, $template, $query,
+		    "Node not found: ".$context->path." ($ver)");
+	return;
+    }
 
     my $gzip = do_compress_response($query);
 
@@ -404,13 +434,13 @@ sub search {
 	    my $rep = $context->config->{'repository'};
 	    my @args = grep {
 		$rep->node($_, $context->release)
-	    } split(/\|/, $find);
+		} split(/\|/, $find);
 	    $template_args{'ambig_res'} = {'query' => $find,
 					   'files' => \@args,}
 	}
     }
     else {
-	die "No query string given";
+	$template_args{'error'} = 'No query string given';
     }
     my $html = '';
     $template_args{'tree'} = $context->tree;
@@ -473,6 +503,10 @@ sub handle_ajax_request {
     binmode(\*STDOUT, ":gzip") if $gzip;
 
     if ($context->param('fname') eq 'pjx_load_file') {
+	unless ($context->config and $context->config->{'repository'}) {
+	    print('<div class="error">No/unknown tree indicated.</div>');
+	    return;
+	}
 	my $rep = $context->config->{'repository'};
 	my $node = $rep->node($context->param('file'), $context->release);
 	print_markedup_file($context, $template, $node);
@@ -773,8 +807,14 @@ sub generate_pdf {
 sub handle {
     my ($self, $query) = @_;
 
-    my $context  = LXRng::Context->new('query' => $query);
     my $template = Template->new({'INCLUDE_PATH' => $LXRng::ROOT.'/tmpl/'});
+    my $context  = LXRng::Context->new('query' => $query);
+
+    unless ($context->config) {
+	print_error($context, $template, $query,
+		    "No/unknown tree indicated");
+	return;
+    }
 
     if ($context->param('fname')) {
 	handle_ajax_request($query, $context, $template);
