@@ -91,7 +91,7 @@ sub print_markedup_file {
 	$cfile = $context->config->{'cache'}.'/'.$shaid
 	    if exists $context->config->{'cache'};
 
-	if ($cfile and -d $cfile) {
+	if ($cfile and -e "$cfile/.complete") {
 	    print("<pre id=\"file_contents\">");
 	    while (-r "$cfile/$line") {
 		print("<div class=\"".($focus ? "done" : "pending").
@@ -160,7 +160,11 @@ sub print_markedup_file {
 		}
 	    }
 	    print("</div></pre>\n");
-	    close($cache) if $cache;
+	    if ($cache) {
+		close($cache);
+		open($cache, '>', "$cfile/.complete");
+		close($cache);
+	    }
 	}
 	return $shaid;
     }
