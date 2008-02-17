@@ -83,7 +83,7 @@ sub print_markedup_file {
 	my $fline  = $context->param('line');
 
 	$focus = $fline < 100 if defined($fline);
-    
+
 	my $shaid = sha1_hex(join("\0", $node->name, $node->revision,
 				  $context->release));
 	my $cfile;
@@ -134,7 +134,7 @@ sub print_markedup_file {
 		  "\" id=\"$shaid/0\">");
 	    while (1) {
 		my @frags = map { split(/(?<=\n)/, $_) }
-				  $markup->markupfile($subst, $parse);
+		$markup->markupfile($subst, $parse);
 		last unless @frags;
 		foreach my $f (@frags) {
 		    print($f) if $focus;
@@ -174,7 +174,7 @@ sub print_tree_list {
     $template->process('tree_list.tt2',
 		       {'context' => $context,
 			'base_url' => $base})
-		or die $template->error();
+	or die $template->error();
 }    
 
 sub print_release_list {
@@ -182,7 +182,7 @@ sub print_release_list {
 
     $template->process('release_select.tt2',
 		       {'context' => $context})
-		or die $template->error();
+	or die $template->error();
 }
 
 sub source {
@@ -322,28 +322,7 @@ sub source {
     # 0.18, this seems to truncate the stream.  Not strictly needed
     # for CGI, reexamine when adapting to mod_perl.
     ## binmode(\*STDOUT, ":pop") if $gzip;
-    
 }
-
-#sub ident {
-#    my ($self) = @_;
-
-#    my $index = $self->context->config->{'index'};
-#    my $view = LXRng::View->new('context' => $self->context);;
-
-#    my $ident  = $self->context->value('ident');
-#    my $target = $self->context->value('navtarget');
-#    $target ||= 'source';
-
-#    my $rel_id = $index->release_id($self->tree, $self->context->value('v'));
-#    my ($symname, $symid, $ident, $refs) =
-#        $index->get_identifier_info($ident, $rel_id);
-
-#    $$ident[1] = $LXRng::Lang::deftypes{$$ident[1]};
-#    $$ident[5] &&= $LXRng::Lang::deftypes{$$ident[5]};
-    
-#    return $view->identifier_info($symname, $symid, $ident, $refs, $target);
-#}
 
 
 # Perform various search operations.  Return results as html suitable
@@ -399,8 +378,8 @@ sub search {
 				$_ }
 			  sort { $LXRng::Lang::defweight{$$b[1]} cmp
 				     $LXRng::Lang::defweight{$$a[1]} ||
-				 $$a[2] cmp $$b[2] ||
-				 $$a[3] <=> $$b[3] }
+				     $$a[2] cmp $$b[2] ||
+				     $$a[3] <=> $$b[3] }
 			  @$result);
 	    $template_args{'code_res'} = {'query' => $find,
 					  'idents' => \@cooked};
@@ -566,7 +545,7 @@ sub handle_preferences {
 	my $nav = 'is_replace';
 	$nav = 'is_'.$context->prefs->{'navmethod'} if
 	    $context->prefs and $context->prefs->{'navmethod'} ne '';
-	    
+	
 	my $ret = $context->base_url();
 	$ret =~ s,[+]prefs/?,,;
 	$ret .= $query->param('return') if $query->param('return');
