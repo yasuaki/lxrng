@@ -1,6 +1,7 @@
-
+[% TRY %][% INCLUDE site/footer.tt2 %][% CATCH DEFAULT %]
 <div class="footer">
 The original LXR software by the <a href="http://sourceforge.net/projects/lxr">LXR community</a>, this experimental version by <a href="mailto:lxr@linux.no">lxr@linux.no</a>.
 </div>
 </body>
 </html>
+[% END %]
