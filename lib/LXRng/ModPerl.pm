@@ -23,6 +23,7 @@ use strict;
 use LXRng;
 use LXRng::Web;
 
+use Time::HiRes qw(time);
 use Apache2::Const -compile => qw(FORBIDDEN OK);
 use CGI;
 
@@ -31,14 +32,14 @@ use Data::Dumper;
 sub handler {
     my ($req) = @_;
 
-    my @tstart = times();
+    my @tstart = (time+0, times());
     my $query  = CGI->new();
     my $qident = LXRng::Web->handle($query);
-    my @tstop  = times();
+    my @tstop  = (time+0, times());
 
     $req->notes->add("lxr_prof" =>
-		     sprintf("U/S/CU/CS: %d/%d/%d/%d ms",
-			     map { 1000*($tstop[$_]-$tstart[$_]) } (0 .. 3)));
+		     sprintf("T/U/S/CU/CS: %d/%d/%d/%d/%d ms",
+			     map { 1000*($tstop[$_]-$tstart[$_]) } (0 .. 4)));
     $req->notes->add("lxr_ident" => $qident);
 
     return Apache2::Const::OK;
