@@ -82,7 +82,7 @@ sub new {
 
     if ($$self{'tree'} and $$self{'tree'} !~ /^[+]/) {
 	my $tree = $$self{'tree'};
-	die("No config for tree $tree") 
+	return $self
 	    unless exists($$config{$tree});
 
 	$$self{'config'} = $$config{$tree};

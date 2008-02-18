@@ -3,6 +3,10 @@
 <img border="0" src="../.static/gfx/close.png" alt="X"></a>
 </span>
 
+[% IF error %]
+<div class="error">[% error | html %]</div>
+[% END %]
+
 [% IF search_type == "code" or (code_res and code_res.idents.0) %]
   <div class="query_desc">Code search: [% code_res.query %]</div>
   [% ptype = '' %]

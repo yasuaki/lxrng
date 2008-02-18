@@ -1,0 +1,3 @@
+[% INCLUDE header.tt2 %]
+<div class="error">[% error | html %]</div>
+[% INCLUDE footer.tt2 %]
