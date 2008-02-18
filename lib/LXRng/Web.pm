@@ -742,18 +742,20 @@ sub generate_pdf {
 			'lines' => \@lines},
 		       $texh)
 	or die $template->error();
-    my $pid = fork();
-    die $! unless defined($pid);
+
+    my $pdflatex;
+    my $pid = open($pdflatex, "-|");
+    die $! unless defined $pid;
+
     if ($pid == 0) {
-	close(STDOUT);
-	open(STDOUT, "> $texname.output");
 	close(STDERR);
 	open(STDERR, ">&STDOUT");
 	chdir($tempdir);
 	exec("pdflatex", "$texname");
 	kill(9, $$);
     }
-    waitpid($pid, 0);
+    my @err = <$pdflatex>;
+    close($pdflatex);
     my $pdfname = $texname;
     $pdfname =~ s/[.]tex$/.pdf/;
     if (-e $pdfname) {
@@ -769,9 +771,6 @@ sub generate_pdf {
 	close($pdfh);
     }
     elsif (-e "$texname.output") {
-	open(my $errh, "< $texname.output") or die $!;
-	my @err = <$errh>;
-	close($errh);
 	@err = splice(@err, -15) if @err > 15;
 	die "PDF generation failed: ".join("\n", @err);
     }
