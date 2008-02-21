@@ -28,11 +28,15 @@
       <div class="headingbottom"></div>
     </div>
 
-    <p>
-    <ul>
-      <li><a href="linux">Linux</a>
-    </ul>
-    </p>
+    <div id="content">
+      <p>
+        <ul>
+          [% FOREACH tree = context.read_config.keys.sort %]
+          <li><a href="[% tree %]">[% tree | ucfirst %]</a>
+          [% END %]
+        </ul>
+      </p>
+    </div>
   </body>
 </html>
 [% INCLUDE footer.tt2 %]
