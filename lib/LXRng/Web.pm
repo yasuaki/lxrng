@@ -82,7 +82,7 @@ sub print_markedup_file {
 	my $focus  = 1;
 	my $fline  = $context->param('line');
 
-	$focus = $fline < 100 if defined($fline);
+	$focus = $fline < FRAGMENT_SIZE if defined($fline);
 
 	my $shaid = sha1_hex(join("\0", $node->name, $node->revision,
 				  $context->release));
