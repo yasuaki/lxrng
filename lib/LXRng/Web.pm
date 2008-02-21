@@ -119,8 +119,10 @@ sub print_markedup_file {
 	}
 	else {
 	    my $cache;
-	    mkpath($cfile, 0, 0777);
-	    open($cache, '>', "$cfile/0") if $cfile;
+	    if ($cfile) {
+		mkpath($cfile, 0, 0777);
+		open($cache, '>', "$cfile/0");
+	    }
 	    my $handle = $node->handle();
 	    LXRng::Lang->init($context);
 	    my $lang   = LXRng::Lang->new($node);
