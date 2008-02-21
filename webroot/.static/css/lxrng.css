@@ -240,8 +240,12 @@ div.footerfill {
 	height: 3px;
 }
 
-div.content {
+div#content {
 	background: white;
+	background-image: url(../gfx/lxray-large.png);
+	background-position: top right;
+	background-repeat: no-repeat;
+	min-height: 250px;
 }
 
 

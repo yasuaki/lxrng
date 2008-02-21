@@ -4,6 +4,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <script type="text/javascript" src="../.static/js/lxrng-funcs.js"></script>
+    <link rel="shortcut icon" href="../.static/gfx/favicon.png" type="image/png">
     <link rel="stylesheet" href="../.static/css/lxrng.css" type="text/css" title="LXRng">
 
     <title id="title">LXR Preferences</title>
@@ -24,6 +25,7 @@
       <div class="headingbottom"></div>
     </div>
 
+    <div class="prose">
     <p>
     <form method="post" action="+prefs">
       <div>
@@ -52,6 +54,7 @@
 	</li>
       </ol>
       </p>
+      </div>
       <p>
 	(Cookies need to be enabled for LXR preferences to take effect.)
       </p>

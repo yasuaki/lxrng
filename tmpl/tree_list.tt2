@@ -6,6 +6,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <base href="[% base_url %]">
     <script type="text/javascript" src=".static/js/lxrng-funcs.js"></script>
+    <link rel="shortcut icon" href=".static/gfx/favicon.png" type="image/png">
     <link rel="stylesheet" href=".static/css/lxrng.css" type="text/css" title="LXRng">
 
     <title id="title">LXR Inventory</title>
@@ -28,11 +29,15 @@
       <div class="headingbottom"></div>
     </div>
 
-    <p>
-    <ul>
-      <li><a href="linux">Linux</a>
-    </ul>
-    </p>
+    <div id="content">
+      <p>
+        <ul>
+          [% FOREACH tree = context.read_config.keys.sort %]
+          <li><a href="[% tree %]">[% tree | ucfirst %]</a>
+          [% END %]
+        </ul>
+      </p>
+    </div>
   </body>
 </html>
 [% INCLUDE footer.tt2 %]
