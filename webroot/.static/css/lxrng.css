@@ -248,6 +248,11 @@ div#content {
 	min-height: 250px;
 }
 
+div.pending {
+	background-image: url(../gfx/loading.gif);
+	background-position: top left;
+	background-repeat: repeat-y;
+}
 
 span.comment {
 	font-weight: bold;
