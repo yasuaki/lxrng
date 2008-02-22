@@ -8,7 +8,7 @@ clean:
 
 
 lxray-large.png: %.png: %.svg
-	inkscape -e $@ -w 300 $<
+	inkscape -b white -e $@ -w 300 $<
 
 %.png: %.svg
 	inkscape -e $@ -w 16 -h 16 $<
