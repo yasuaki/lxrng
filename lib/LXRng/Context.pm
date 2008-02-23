@@ -90,7 +90,8 @@ sub new {
     }
 
     if (exists $$self{'params'}{'v'} and $$self{'params'}{'v'}) {
-	$$self{'release'} ||= $$self{'params'}{'v'}[0];
+	$$self{'release'} ||= $$self{'params'}{'v'}[0]
+	    if $$self{'params'}{'v'}[0] ne 'undefined';
 	delete($$self{'params'}{'v'});
     }
 

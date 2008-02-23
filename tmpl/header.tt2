@@ -16,7 +16,9 @@
       }
       else {
   	document.write('<base href="[% base_url | html %]">');
-  	document.write('<meta http-equiv="Refresh" content="1;+trees">');
+	var base = '[% base_url | html %]';
+	base = base.replace(/\/ajax[+][*]\/?/, '/');
+  	document.write('<meta http-equiv="Refresh" content="0;url=' + base + '+trees">');
 	use_ajax_navigation = 0;
       }
       [% END %]

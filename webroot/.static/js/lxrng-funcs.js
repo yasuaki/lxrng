@@ -314,7 +314,10 @@ function load_content() {
 	}
 	var tree = location.hash.split('/', 1);
 	tree = tree[0].split(/[+]/);
-	var ver = tree[1] || '';
+	var ver = '';
+	if (tree.length > 1) {
+		ver = tree[1];
+	}
 	tree = tree[0].replace(/^#/, '');
 	var file = location.hash.replace(/^[^\/]*\/?/, '');
 	var line = file.replace(/.*\#L(\d+)/, '$1');
