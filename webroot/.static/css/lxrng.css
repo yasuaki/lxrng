@@ -146,27 +146,27 @@ span.close-button {
 	margin-right: 3px;
 }
 
-/* a.line:before {
-	content: attr(id);
-} */
+div#file_contents {
+	padding-top: 10px;
+}
 
 pre {
-	margin-left: 3.8em;
+	margin-left: 0px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-top: 0px;
+	padding-bottom: 0px;
 }
 
 a.line {
-	position: absolute;
-	top: auto;
-	left: 0px;
-	height: 2ex;
-	width: 3em;
-	text-align: right;
-	padding-right: 3px;
-
 	border: solid;
 	border-width: 1px;
 	border-color: #000000;
-	margin-left: 3px;
+	margin-left: 0px;
+	margin-right: 7px;
+	padding-left: 3px;
+	padding-right: 3px;
+	
 	background: #F0F0F0;
 }
 
@@ -248,7 +248,7 @@ div#content {
 	min-height: 250px;
 }
 
-div.pending {
+pre.pending {
 	background-image: url(../gfx/loading.gif);
 	background-position: top left;
 	background-repeat: repeat-y;

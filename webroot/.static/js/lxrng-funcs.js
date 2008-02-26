@@ -86,7 +86,6 @@ var loaded_hash;
 var loaded_tree;
 var loaded_file;
 var loaded_ver;
-var loaded_line;
 
 var pending_tree;
 var pending_file;
@@ -132,7 +131,7 @@ function check_hash_navigation() {
 			var a = document.getElementById(l);
 			if (l && a) {
 				a.name = location.hash.replace(/^\#/, '');
-				location.hash = a.name;
+				document.location.hash = a.name;
 				loaded_hash = location.hash;
 			}
 			hash_check = setTimeout('check_hash_navigation()', 50);
@@ -210,16 +209,16 @@ function ajaxify_link_handlers(links) {
 }
 
 function load_next_pending_fragment() {
-	var pre = document.getElementById('file_contents');
-	if (!pre)
+	var listing = document.getElementById('file_contents');
+	if (!listing)
 		return;
 
-	for (var i = 0; i < pre.childNodes.length; i++) {
-		if ((pre.childNodes[i].nodeName == 'DIV') &&
-		    (pre.childNodes[i].className == 'pending'))
+	for (var i = 0; i < listing.childNodes.length; i++) {
+		if ((listing.childNodes[i].nodeName == 'PRE') &&
+		    (listing.childNodes[i].className == 'pending'))
 		{
 			pjx_load_fragment(['tree__' + pending_tree,
-					   'frag__' + pre.childNodes[i].id],
+					   'frag__' + listing.childNodes[i].id],
 					  [load_fragment_finalize]);
 			return;
 		}
@@ -228,12 +227,22 @@ function load_next_pending_fragment() {
 
 function load_fragment_finalize(content) {
 	var split = content.indexOf('|');
-	var div = document.getElementById(content.substr(0, split));
+	var id = content.substr(0, split);
+	var div = document.getElementById(id);
 	if (!div)
 		return;
 
-	div.innerHTML = content.substr(split+1);
-	div.className = 'done';
+	// Work around IE oddity where whitespace is collapsed on 
+	// assignment to innerHTML unless contained in pre-tags...
+	if (div.outerHTML) {
+		div.outerHTML = '<pre class="done" id="' + id + '">' +
+			content.substr(split+1) + '</pre>';
+		div = document.getElementById(id);
+	}
+	else {
+		div.innerHTML = content.substr(split+1);
+		div.className = 'done';
+	}
 
 	var links = div.getElementsByTagName('a');
 	ajaxify_link_handlers(links);
@@ -282,25 +291,17 @@ function load_file_finalize(content) {
 	if (hash_check) {
 		clearTimeout(hash_check);
 	}
-	if (pending_line) {
-		var anchor = document.getElementById('L' + pending_line);
-		if (anchor) {
-			anchor.name = full_path + '#L' + pending_line;
-			location.hash = full_path + '#L' + pending_line;
-		}
-		else {
-			location.hash = full_path;
-		}
-		loaded_line = pending_line;
-	}
-	else {
-		location.hash = full_path;
-		loaded_line = 0;
-	}
+
+	location.hash = full_path;
 	loaded_hash = location.hash;
 	loaded_tree = pending_tree;
 	loaded_file = pending_file;
 	loaded_ver = pending_ver;
+
+	if (pending_line) {
+		location.hash = full_path + '#L' + pending_line;
+	}
+
 	hash_check = setTimeout('check_hash_navigation()', 50);
 
 	ajaxify_link_handlers(document.links);
@@ -320,8 +321,14 @@ function load_content() {
 	}
 	tree = tree[0].replace(/^#/, '');
 	var file = location.hash.replace(/^[^\/]*\/?/, '');
-	var line = file.replace(/.*\#L(\d+)/, '$1');
-	file = file.replace(/\#L\d+$/, '');
+	var line = file.split('#L');
+	if (line.length > 1) {
+		file = line[0];
+		line = line[1];
+	}
+	else {
+		line = '';
+	}
 	load_file(tree, file, ver, line);
 
 	pjx_releases(['tree__' + tree, 'NO_CACHE'],

@@ -88,13 +88,14 @@ sub print_markedup_file {
 				  $context->release));
 	my $cfile;
 	$shaid =~ s,^(..)(..),$1/$2/,;
+	$shaid .= '_2'; # Cache file format generation indicator
 	$cfile = $context->config->{'cache'}.'/'.$shaid
 	    if exists $context->config->{'cache'};
 
 	if ($cfile and -e "$cfile/.complete") {
-	    print("<pre id=\"file_contents\">");
+	    print("<div id=\"file_contents\">");
 	    while (-r "$cfile/$line") {
-		print("<div class=\"".($focus ? "done" : "pending").
+		print("<pre class=\"".($focus ? "done" : "pending").
 		      "\" id=\"$shaid/$line\">");
 		if ($focus) {
 		    open(my $cache, '<', "$cfile/$line");
@@ -105,9 +106,9 @@ sub print_markedup_file {
 		    close($cache);
 		}
 		else {
-		    print("\n" x FRAGMENT_SIZE);
+		    print("<a class=\"line\"></a>\n" x FRAGMENT_SIZE);
 		}
-		print("</div>");
+		print("</pre>");
 		$line += FRAGMENT_SIZE;
 
 		if (defined($fline)) {
@@ -115,7 +116,7 @@ sub print_markedup_file {
 			      and $line > ($fline - FRAGMENT_SIZE));
 		}
 	    }
-	    print("</pre>\n");
+	    print("</div>\n");
 	}
 	else {
 	    my $cache;
@@ -131,8 +132,8 @@ sub print_markedup_file {
 	    my $markup = LXRng::Markup::File->new('context' => $context);
 	    my $subst  = $lang->markuphandlers($context, $node, $markup);
 
-	    print("<pre id=\"file_contents\">".
-		  "<div class=\"".($focus ? "done" : "pending").
+	    print("<div id=\"file_contents\">".
+		  "<pre class=\"".($focus ? "done" : "pending").
 		  "\" id=\"$shaid/0\">");
 	    while (1) {
 		my @frags = map { split(/(?<=\n)/, $_) }
@@ -144,13 +145,14 @@ sub print_markedup_file {
 		    if ($f =~ /\n$/s) {
 			$line++;
 			if ($line % FRAGMENT_SIZE == 0) {
-			    print("\n" x FRAGMENT_SIZE) unless $focus;
+			    print("<a class=\"line\"></a>\n" x FRAGMENT_SIZE)
+				unless $focus;
 			    if (defined($fline)) {
 				$focus = ($line <= ($fline + 100)
 					  and $line > ($fline - FRAGMENT_SIZE));
 			    }
-			    print("</div>".
-				  "<div class=\"".
+			    print("</pre>".
+				  "<pre class=\"".
 				  ($focus ? "done" : "pending").
 				  "\" id=\"$shaid/$line\">");
 			    if ($cache) {
@@ -161,7 +163,7 @@ sub print_markedup_file {
 		    }
 		}
 	    }
-	    print("</div></pre>\n");
+	    print("</pre></div>\n");
 	    if ($cache) {
 		close($cache);
 		open($cache, '>', "$cfile/.complete");
@@ -517,7 +519,7 @@ sub handle_ajax_request {
     elsif ($context->param('fname') eq 'pjx_load_fragment') {
 	my $shaid = $context->param('frag');
 	return unless $shaid =~ 
-	    m|^[0-9a-z]{2}/[0-9a-z]{2}/[0-9a-z]{36}/[0-9]+$|;
+	    m|^[0-9a-z]{2}/[0-9a-z]{2}/[0-9a-z]{36}_\d+/[0-9]+$|;
 	return unless exists $context->config->{'cache'};
 	my $cfile = $context->config->{'cache'}.'/'.$shaid;
 	return unless -e $cfile;
