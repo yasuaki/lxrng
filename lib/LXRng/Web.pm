@@ -833,9 +833,11 @@ sub handle {
 	    if ($context->path =~ 
 		/^[+ ](search|code|ident|file|text|ambig)(?:=(.*)|)/)
 	    {
+		my $qstring = $2 || $context->param('search');
 		search_result($context, $template, $query,
 			      search($context, $template, $1, $2));
 		$context->path('');
+		return $qstring;
 	    }
 	    else {
 		source($context, $template, $query);
