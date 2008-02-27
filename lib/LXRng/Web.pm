@@ -834,10 +834,11 @@ sub handle {
 		/^[+ ](search|code|ident|file|text|ambig)(?:=(.*)|)/)
 	    {
 		my $qstring = $2 || $context->param('search');
+		$qstring =~ s/\"/\\x22/g;
 		search_result($context, $template, $query,
 			      search($context, $template, $1, $2));
 		$context->path('');
-		return $qstring;
+		return qq{"$qstring"};
 	    }
 	    else {
 		source($context, $template, $query);
