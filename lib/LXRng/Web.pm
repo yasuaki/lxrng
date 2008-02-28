@@ -38,7 +38,7 @@ use File::Path qw(mkpath);
 use POSIX qw(waitpid);
 
 # Cache must be purged if this is changed.
-use constant FRAGMENT_SIZE => 250;
+use constant FRAGMENT_SIZE => 1000;
 
 use vars qw($has_gzip_io);
 eval { require PerlIO::gzip; $has_gzip_io = 1; };
@@ -77,101 +77,101 @@ sub print_markedup_file {
 	    or die $template->error();
 	return;
     }
-    else {
-	my $line   = 0;
-	my $focus  = 1;
-	my $fline  = $context->param('line');
 
-	$focus = $fline < FRAGMENT_SIZE if defined($fline);
+    my $line   = 0;
+    my $focus  = 1;
+    my $fline  = $context->param('line');
 
-	my $shaid = sha1_hex(join("\0", $node->name, $node->revision,
-				  $context->release));
-	my $cfile;
-	$shaid =~ s,^(..)(..),$1/$2/,;
-	$shaid .= '_2'; # Cache file format generation indicator
-	$cfile = $context->config->{'cache'}.'/'.$shaid
-	    if exists $context->config->{'cache'};
+    $focus = $fline < FRAGMENT_SIZE if defined($fline);
 
-	if ($cfile and -e "$cfile/.complete") {
-	    print("<div id=\"file_contents\">");
-	    while (-r "$cfile/$line") {
-		print("<pre class=\"".($focus ? "done" : "pending").
-		      "\" id=\"$shaid/$line\">");
-		if ($focus) {
-		    open(my $cache, '<', "$cfile/$line");
-		    my $buf;
-		    while (read($cache, $buf, 16384) > 0) {
-			print($buf);
-		    }
-		    close($cache);
+    my $shaid = sha1_hex(join("\0", $node->name, $node->revision,
+			      $context->release));
+    my $cfile;
+    $shaid =~ s,^(..)(..),$1/$2/,;
+    $shaid .= '_3'; # Cache file format generation indicator
+    $cfile = $context->config->{'cache'}.'/'.$shaid
+	if exists $context->config->{'cache'};
+
+    if ($cfile and -e "$cfile/.complete") {
+	print("<div id=\"file_contents\">");
+	while (-r "$cfile/$line") {
+	    print("<pre class=\"".($focus ? "done" : "pending").
+		  "\" id=\"$shaid/$line\">");
+	    if ($focus) {
+		open(my $cache, '<', "$cfile/$line");
+		my $buf;
+		while (read($cache, $buf, 16384) > 0) {
+		    print($buf);
 		}
-		else {
-		    print("<a class=\"line\"></a>\n" x FRAGMENT_SIZE);
-		}
-		print("</pre>");
-		$line += FRAGMENT_SIZE;
-
-		if (defined($fline)) {
-		    $focus = ($line <= ($fline + 100)
-			      and $line > ($fline - FRAGMENT_SIZE));
-		}
-	    }
-	    print("</div>\n");
-	}
-	else {
-	    my $cache;
-	    if ($cfile) {
-		mkpath($cfile, 0, 0777);
-		open($cache, '>', "$cfile/0");
-	    }
-	    my $handle = $node->handle();
-	    LXRng::Lang->init($context);
-	    my $lang   = LXRng::Lang->new($node);
-	    my $parse  = LXRng::Parse::Simple->new($handle, 8,
-						   @{$lang->parsespec});
-	    my $markup = LXRng::Markup::File->new('context' => $context);
-	    my $subst  = $lang->markuphandlers($context, $node, $markup);
-
-	    print("<div id=\"file_contents\">".
-		  "<pre class=\"".($focus ? "done" : "pending").
-		  "\" id=\"$shaid/0\">");
-	    while (1) {
-		my @frags = map { split(/(?<=\n)/, $_) }
-		$markup->markupfile($subst, $parse);
-		last unless @frags;
-		foreach my $f (@frags) {
-		    print($f) if $focus;
-		    print($cache $f) if $cache;
-		    if ($f =~ /\n$/s) {
-			$line++;
-			if ($line % FRAGMENT_SIZE == 0) {
-			    print("<a class=\"line\"></a>\n" x FRAGMENT_SIZE)
-				unless $focus;
-			    if (defined($fline)) {
-				$focus = ($line <= ($fline + 100)
-					  and $line > ($fline - FRAGMENT_SIZE));
-			    }
-			    print("</pre>".
-				  "<pre class=\"".
-				  ($focus ? "done" : "pending").
-				  "\" id=\"$shaid/$line\">");
-			    if ($cache) {
-				close($cache);
-				open($cache, '>', "$cfile/$line");
-			    }
-			}
-		    }
-		}
-	    }
-	    print("</pre></div>\n");
-	    if ($cache) {
-		close($cache);
-		open($cache, '>', "$cfile/.complete");
 		close($cache);
 	    }
+	    else {
+		print("<a class=\"line\"></a>\n" x FRAGMENT_SIZE);
+	    }
+	    print("</pre>");
+	    $line += FRAGMENT_SIZE;
+
+	    if (defined($fline)) {
+		$focus = ($line <= ($fline + 100)
+			  and $line > ($fline - FRAGMENT_SIZE));
+	    }
 	}
-	return $shaid;
+	print("</div>\n");
+	return "use:".$shaid;
     }
+
+    my $cache;
+    if ($cfile) {
+	mkpath($cfile, 0, 0777);
+	open($cache, '>', "$cfile/0");
+    }
+    my $handle = $node->handle();
+    LXRng::Lang->init($context);
+    my $lang   = LXRng::Lang->new($node);
+    my $parse  = LXRng::Parse::Simple->new($handle, 8,
+					   @{$lang->parsespec});
+    my $markup = LXRng::Markup::File->new('context' => $context);
+    my $subst  = $lang->markuphandlers($context, $node, $markup);
+
+    print("<div id=\"file_contents\">".
+	  "<pre class=\"".($focus ? "done" : "pending").
+	  "\" id=\"$shaid/0\">");
+    while (1) {
+	my @frags = map { split(/(?<=\n)/, $_) }
+	$markup->markupfile($subst, $parse);
+	last unless @frags;
+	foreach my $f (@frags) {
+	    print($f) if $focus;
+	    print($cache $f) if $cache;
+	    if ($f =~ /\n$/s) {
+		$line++;
+		if ($line % FRAGMENT_SIZE == 0) {
+		    print("<a class=\"line\"></a>\n" x FRAGMENT_SIZE)
+			unless $focus;
+		    if (defined($fline)) {
+			$focus = ($line <= ($fline + 100)
+				  and $line > ($fline - FRAGMENT_SIZE));
+		    }
+		    print("</pre>".
+			  "<pre class=\"".
+			  ($focus ? "done" : "pending").
+			  "\" id=\"$shaid/$line\">");
+		    if ($cache) {
+			close($cache);
+			open($cache, '>', "$cfile/$line");
+		    }
+		}
+	    }
+	}
+    }
+    print("</pre></div>\n");
+    if ($cache) {
+	close($cache);
+	open($cache, '>', "$cfile/.complete");
+	close($cache);
+    }
+
+    return "gen:".$shaid;
 }
 
 sub print_error {
@@ -225,15 +225,18 @@ sub source {
     $pjx->js_encode_function('escape');
 
     if ($context->prefs and $context->prefs->{'navmethod'} eq 'ajax') {
+	print($query->header(-type => 'text/html',
+			     -charset => 'utf-8'));
 	if ($context->tree ne '') {
 	    my $base = $context->base_url(1);
 	    my $path = $context->vtree.'/'.$context->path;
-	    print($query->redirect($base.'#'.$path));
+	    # print($query->redirect($base.'#'.$path));
+
+	    $template->process('ajax_redir.tt2',
+			       {'ajax_url' => $base.'#'.$path})
+		or die $template->error();
 	}
 	else {
-	    print($query->header(-type => 'text/html',
-				 -charset => 'utf-8'));
-
 	    if ($context->release eq 'trees') {
 		print_tree_list($context, $template);
 	    }

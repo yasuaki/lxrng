@@ -1,0 +1,13 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+  <head>
+    <script type="text/javascript">
+      document.write('<meta http-equiv="refresh" content="0;url=[% ajax_url %]'
+		     + location.hash + '">');
+    </script>
+  </head>
+  <body onload="location.href='[% ajax_url %]' + location.hash;">
+    <small>Redirecting to Ajax interface...</small>
+  </body>
+</html>
