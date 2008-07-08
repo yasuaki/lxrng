@@ -230,10 +230,18 @@ sub reference_file($$$) {
 sub hash_file($$$) {
     my ($file, $fileid, $rels) = @_;
 
+    return 0 if $context->config->{'search_size_limit'} > 0 and
+	$file->size > $context->config->{'search_size_limit'};
+
     my $docid;
     if ($index->to_hash($fileid)) {
 	my $handle;
 	sysopen($handle, $file->phys_path, 0) || die($!);
+	unless (-T $handle) {
+	    $handle->close();
+	    return 0;
+	}
+
 	warn("--- hashing     ".$file->name." [".$file->revision."]\n");
 	my $doc = $hash->new_document($file->name);
 	while (<$handle>) {
@@ -255,6 +263,7 @@ sub hash_file($$$) {
     }
     else {
 	$docid = $index->get_hashed_document($fileid);
+	return 0 unless $docid;
 	my $doc = $hash->get_document($docid);
 	if (reference_file($file, $fileid, $doc)) {
 	    $hash->save_document($docid, $doc);
