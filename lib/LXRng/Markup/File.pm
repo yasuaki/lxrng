@@ -137,7 +137,7 @@ sub markupfile {
 	return $$subst{$btype}->s($frag);
     }
     else {
-	return $frag;
+	return safe_html($frag);
     }
 }
 
