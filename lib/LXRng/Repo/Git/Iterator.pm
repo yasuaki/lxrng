@@ -28,7 +28,7 @@ sub new {
     my @refs;
     my $git = $repo->_git_cmd('ls-tree', '-r', $release);
     while (<$git>) {
-	if (/\S+\s+blob\s+(\S+)\s+(\S+)/) {
+	if (/\S+\s+blob\s+(\S+)\s+(.+)/) {
 	    push(@refs, [$2, $1]);
 	}
     }

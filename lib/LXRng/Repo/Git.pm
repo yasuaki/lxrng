@@ -127,7 +127,7 @@ sub node {
     else {
 	my $git = $self->_git_cmd('ls-tree', $release, $path);
 	my ($mode, $gitpath);
-	($mode, $type, $rev, $gitpath) = split(" ", <$git>);
+	($mode, $type, $rev, $gitpath) = split(" ", <$git>, 4);
     }
 
     if ($type eq 'tree') {
