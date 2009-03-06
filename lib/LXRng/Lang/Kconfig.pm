@@ -17,7 +17,7 @@
 # The full GNU General Public License is included in this distribution
 # in the file called COPYING.
 
-package LXRng::Lang::C;
+package LXRng::Lang::Kconfig;
 
 use strict;
 use Subst::Complex;
@@ -30,20 +30,16 @@ sub doindex {
 }
 
 sub ctagslangname {
-    return 'c';
-}
-
-sub ctagsopts {
-    return ('--c-types=+lpx');
+    return undef;
 }
 
 sub pathexp {
-    return qr/\.[ch]$/;
+    return qr/Kconfig$/;
 }
 
 my $_identifier_re = qr(
-			(?m:^|(?<=[^a-zA-Z0-9_\#]))	# Non-symbol chars.
-			(_*[a-zA-Z][a-zA-Z0-9_]*)	# The symbol.
+			(?m:^|(?<=[^A-Z0-9_\#]))	# Non-symbol chars.
+			(_*[A-Z][A-Z0-9_]*)		# The symbol.
 			\b
 			)x;
 
@@ -52,12 +48,8 @@ sub identifier_re {
 }
 
 my $_reserved = { map { $_ => 1 }
-		  qw(asm auto break case char const continue default
-		     do double else enum extern float for fortran goto
-		     if int long register return short signed sizeof
-		     static struct switch typedef union unsigned void
-		     volatile while #define #else #endif #if #ifdef
-		     #ifndef #include #undef)};
+		  qw(menu source endmenu config bool if default help
+		     tristate depends on y n m)};
 
 sub reserved {
     return $_reserved;
@@ -65,12 +57,15 @@ sub reserved {
 
 sub parsespec {
     return ['atom',	'\\\\.',	undef,
-	    'comment',	'/\*',		'\*/',
-	    'comment',	'//',		"\$",
+	    'comment',	'#',		"\$",
 	    'string',	'"',		'"',
 	    'string',	"'",		"'",
-	    'include',	'#\s*include\s+"',	'"',
-	    'include',	'#\s*include\s+<',	'>'];
+	    'help',     'help', 	"^(?=[^ \t\n])",
+	    'include',	'^source\s+"',	'"'];
+}
+
+sub mangle_sym {
+    return $_[1] =~ /^[A-Z0-9_]+$/ ? 'CONFIG_'.$_[1] : $_[1];
 }
 
 sub markuphandlers {
@@ -84,6 +79,11 @@ sub markuphandlers {
 	qr/\n/     => $format_newline,
 	qr/[^\n]+/ => sub { $markup->format_comment(@_) };
 	
+    $subst{'help'} = new Subst::Complex
+	qr/\n/        => $format_newline,
+	qr/^[ \t]*help[ \t]*/ => sub { $markup->format_code($self, @_) },
+	qr/[^\n\"\']+/ => sub { $markup->format_string(@_) };
+
     $subst{'string'} = new Subst::Complex
 	qr/\n/        => $format_newline,
 	qr/[^\n\"\']+/ => sub { $markup->format_string(@_) };
@@ -111,24 +111,8 @@ sub markuphandlers {
 sub resolve_include {
     my ($self, $context, $node, $frag) = @_;
 
-    if ($frag =~ /include\s+<(.*?)>/) {
-	return $self->expand_include($context, $node, $1);
-    }
-    elsif ($frag =~ /include\s+\"(.*?)\"/) {
-	my $incl = $1;
-	my $bare = $1;
-	my $name = $node->name();
-	if ($name =~ /(.*\/)/) {
-	    $incl = $1.$incl;
-	    1 while $incl =~ s,/[^/]+/../,/,;
-	    
-	    my $file = $context->config->{'repository'}->node($incl, $context->release);
-	    return $incl if $file;
-	    return $self->expand_include($context, $node, $bare);
-	}
-    }
-
     return ();
 }
 
 1;
+

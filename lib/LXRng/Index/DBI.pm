@@ -520,6 +520,22 @@ sub get_identifier_info {
 	    \%reflines);
 }
 
+sub set_rfile_charset {
+    my ($self, $rfile_id, $charset) = @_;
+
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+    my $sth = $$self{'sth'}{'set_rfile_charset'} ||=
+	$dbh->prepare(qq{
+	    update ${pre}revisions
+		set body_charset = (select id from ${pre}charsets
+				    where name = ?) 
+		where id = ?});
+    
+    return $sth->execute($charset, $rfile_id);
+}
+
+
 sub get_rfile_timestamp {
     my ($self, $rfile_id) = @_;
 

@@ -24,14 +24,16 @@ return {
 	'index'       => $index,
 	'search'      => $search,
 
-	'base_url'    => 'http://lxr-test.linpro.no/lxr',
+	'base_url'    => 'http://localhost/lxr',
 	# Must be writable by httpd user:
 	'cache'	      => '/var/lib/lxrng/cache',
 
 	'fs_charset'  => 'iso-8859-1',
-	'content_charset' => 'iso-8859-1',
+	# Tried successively
+	'content_charset' => ['utf-8', 'iso-8859-1'],
 
-	'languages'   => ['C'],
+	'languages'   => ['C', 'GnuAsm', 'Kconfig'],
+	'ctags_flags' => ["-I\@$LXRng::ROOT/lxr-ctags-quirks"],
 	'ver_list'    => [$gitrepo->allversions],
 
 	'ver_default' => 'v2.6.20.3',

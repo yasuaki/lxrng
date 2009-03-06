@@ -92,18 +92,23 @@ sub format_include {
 }
 
 sub format_code {
-    my ($self, $idre, $res, $frag) = @_;
+    my ($self, $lang, $frag) = @_;
 
     my $tree = $self->context->vtree();
     my $path = $self->context->path();
+    my $idre = $lang->identifier_re();
+    my $res  = $lang->reserved();
 
     $frag =~ s{(.*?)$idre|(.+)}{
 	if ($2) {
 	    unless (exists($$res{$2})) {
 		my $pre = $1;
-		my $sym = safe_html($2);
+		my $sym = $2;
+		my $ref = safe_html($lang->mangle_sym($sym));
+		$sym = safe_html($sym);
+
 		safe_html($pre).
-		    qq{<a href="+code=$sym" class="sref">$sym</a>};
+		    qq{<a href="+code=$ref" class="sref">$sym</a>};
 	    }
 	    else {
 		safe_html($1.$2);
@@ -129,7 +134,7 @@ sub markupfile {
     my ($self, $subst, $parse) = @_;
 
     my ($btype, $frag) = $parse->nextfrag;
-    
+
     return () unless defined $frag;
 
     $btype ||= 'code';

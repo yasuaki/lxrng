@@ -38,6 +38,8 @@ sub new {
 	'fileh'		=> $fileh,	# File handle
 	'tabwidth'	=> $tabhint||8,	# Tab width
 	'frags'		=> [],		# Fragments in queue
+	'pref'		=> '',
+	'rest'		=> '',
 	'bodyid'	=> \@bodyid,	# Array of body type ids
 	'bofseen'	=> 0,		# Beginning-of-file seen?
 	'term'		=> \@term,
@@ -63,81 +65,66 @@ sub untabify {
 sub nextfrag {
     my ($self) = @_;
 
-    my $btype = undef;
-    my $frag = undef;
-    my $line = '';
-
+    my $btype;
     while (1) {
-	# read one more line if we have processed 
-	# all of the previously read line
-	if (@{$$self{'frags'}} == 0) {
-	    $line = $$self{'fileh'}->getline;
-	    
-	    if ($. <= 2 &&
-		$line =~ /^.*-[*]-.*?[ \t;]tab-width:[ \t]*([0-9]+).*-[*]-/) {
-		# make sure there really is a non-zero tabwidth
-		$$self{'tabwidth'} = $1 if $1 > 0;
+	if (defined $btype) {
+	    if ($$self{'rest'} =~ s/\A((?s:.*?)$$self{'term'}[$btype])//m) {
+		my $ret = $$self{'pref'}.$1;
+		$$self{'pref'} = '';
+		return ($$self{'bodyid'}[$btype], $ret);
 	    }
-	    
-	    if(defined($line)) {
-		untabify($line, $$self{'tabwidth'});
+	    else {
+		$$self{'pref'} .= $$self{'rest'};
+		$$self{'rest'} = '';
+	    }
+	}
+	else {
+	    if ($$self{'rest'} =~ s/\A((?s).*?)($$self{'open'})//m) {
+		my $pref = $1;
+		my $frag = $2;
 
-		# split the line into fragments
-		$$self{'frags'} = [split(/($$self{'split'})/, $line)];
+		if ($pref ne '') {
+		    $$self{'rest'} = $frag.$$self{'rest'};
+		    return ('', $pref);
+		}
+
+		$btype = 3;
+		$btype++ while $btype < $#- and !defined($-[$btype]);
+		$btype -= 3;
+
+		if (!defined($$self{'term'}[$btype])) {
+		    # Opening regexp captures entire block.
+		    return ($$self{'bodyid'}[$btype], $frag);
+		}
+		$$self{'pref'} = $frag;
 	    }
 	}
 
-	last if @{$$self{'frags'}} == 0;
+	my $line = $$self{'fileh'}->getline;
+	unless (defined $line) {
+	    my $ret = $$self{'pref'}.$$self{'rest'};
+	    $$self{'pref'} = '';
+	    $$self{'rest'} = '';
+	    undef($ret) unless length($ret) > 0;
+	    
+	    return (defined($btype) ? $$self{'bodyid'}[$btype] : '', $ret);
+	}
+
+	if ($. <= 2 &&
+	    $line =~ /^.*-[*]-.*?[ \t;]tab-width:[ \t]*([0-9]+).*-[*]-/) {
+	    # make sure there really is a non-zero tabwidth
+	    $$self{'tabwidth'} = $1 if $1 > 0;
+	}
+	    
+	untabify($line, $$self{'tabwidth'});
+	$$self{'rest'} .= $line;
 
 	unless ($$self{'bofseen'}) {
 	    # return start marker if file has contents
 	    $$self{'bofseen'} = 1;
 	    return ('start', '');
 	}
-	
-	# skip empty fragments
-	if ($$self{'frags'}[0] eq '') {
-	    shift(@{$$self{'frags'}});
-	}
-
-	# check if we are inside a fragment
-	if (defined($frag)) {
-	    if (defined($btype)) {
-		my $next = shift(@{$$self{'frags'}});
-		
-		# Add to the fragment
-		$frag .= $next;
-		# We are done if this was the terminator
-		last if $next =~ /^$$self{'term'}[$btype]$/;
-		
-	    }
-	    else {
-		if ($$self{'frags'}[0] =~ /^$$self{'open'}$/) {
-		    last;
-		}
-		$frag .= shift(@{$$self{'frags'}});
-	    }
-	}
-	else {
-	    # Find the blocktype of the current block
-	    $frag = shift(@{$$self{'frags'}});
-	    if (defined($frag) && (@_ = $frag =~ /^$$self{'open'}$/)) {
-		# grep in a scalar context returns the number of times
-		# EXPR evaluates to true, which is this case will be
-		# the index of the first defined element in @_.
-
-		my $i = 1;
-		$btype = grep { $i &&= !defined($_) } @_;
-		if(!defined($$self{'term'}[$btype])) {
-		    # Opening regexp captures entire block.
-		    last;
-		}
-	    }
-	}
     }
-    $btype = $$self{'bodyid'}[$btype] if defined($btype);
-    
-    return ($btype, $frag);
 }
 
 1;

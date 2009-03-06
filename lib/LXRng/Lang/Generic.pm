@@ -40,4 +40,9 @@ sub expand_include {
     return ();
 }
 
+sub mangle_sym {
+    my ($self, $sym) = @_;
+    return $sym;
+}
+
 1;

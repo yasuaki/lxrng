@@ -67,7 +67,7 @@ sub init_db {
 	or die($dbh->errstr);
     $dbh->do(qq{insert into ${pre}charsets(name) values ('utf-8')})
 	or die($dbh->errstr);
-    $dbh->do(qq{insert into ${pre}charsets(name) values ('iso8859-1')})
+    $dbh->do(qq{insert into ${pre}charsets(name) values ('iso-8859-1')})
 	or die($dbh->errstr);
 
     $dbh->do(qq{

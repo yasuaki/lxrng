@@ -23,6 +23,13 @@ use strict;
 use Search::Xapian qw/:ops :db :qpstem/;
 use Search::Xapian::QueryParser;
 
+our @STOPWORDS = qw(our ours you your yours him his she her hers they
+                    them their theirs what which who whom this that
+                    these those are was were been being have has had
+                    having does did doing would should could the and
+                    but for with all any);
+our %STOPWORD = map { $_ => 1 } @STOPWORDS;
+
 
 sub new {
     my ($class, $db_root) = @_;
@@ -31,7 +38,7 @@ sub new {
     my $self = bless({'db_root' => $db_root,
 		      'writes' => 0},
 		     $class);
-
+    
     return $self;
 }
 
@@ -98,6 +105,30 @@ sub add_release {
 
     $self->wrdb->replace_document($doc_id, $doc) if $changes;
     return $changes;
+}
+
+sub make_add_text {
+    my ($index, $doc) = @_;
+
+    return sub {
+	my ($pos, $text) = @_;
+
+	foreach my $term ($text =~ /(_*\w[\w_]*)/g) {
+	    $term = lc($term);
+	    next if length($term) <= 2;
+	    next if length($term) > 128;
+	    next if $STOPWORD{$term};
+
+	    $doc->add_posting($term, $pos++);
+	    if ($term =~ /_/) {
+		foreach my $subt ($term =~ /([^_]+)/g) {
+		    next if length($subt) <= 2;
+		    next if $STOPWORD{$subt};
+		    $doc->add_posting($subt, $pos++);
+		}
+	    }
+	};
+    }
 }
 
 sub flush {

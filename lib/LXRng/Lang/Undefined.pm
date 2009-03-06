@@ -41,10 +41,6 @@ sub parsespec {
     return ['atom',	'\\\\.',	undef];
 }
 
-sub typemap {
-    return {};
-}
-
 sub markuphandlers {
     my ($self, $context, $node, $markup) = @_;
     

@@ -37,6 +37,7 @@ use IO::Handle;
 use Fcntl;
 use Term::ProgressBar;
 use Devel::Size qw(size total_size);
+use Encode;
 
 $SIG{'INT'}  = sub { die "\nSIGINT: $$: please wait, flushing caches...\n"; };
 $SIG{'QUIT'} = sub { die "\nSIGQUIT: $$: please wait, flushing caches...\n"; };
@@ -51,6 +52,7 @@ my $tree = shift(@ARGV);
 my @versions = @ARGV;
 
 my $context = LXRng::Context->new('tree' => $tree);
+die "Usage: $0 <tree-id>\n" unless $context and $context->tree;
 LXRng::Lang->init($context);
 
 my $index   = $context->config->{'index'};
@@ -87,7 +89,8 @@ sub make_add_ident($) {
 	    $last_func = $symbol;
 	}
 	if ($$info{'kind'} eq 'l') {
-	    $$info{'context'} = $identcache{$last_func};
+	    $$info{'context'} = $identcache{$last_func} if
+		defined($last_func);
 	}
 	if (exists $$info{'class'}) {
 	    $$info{'context'} = $identcache{$$info{'class'}};
@@ -122,11 +125,12 @@ sub index_file($$) {
 
     return 0 unless $index->to_index($fileid);
     return 1 unless $lang->doindex();
+    return 1 unless $lang->ctagslangname();
 
     my $add_ident = make_add_ident($fileid);
    
     warn("--- indexing    ".$file->name." [".$file->revision."]\n");
-    my @extra_flags = ('-IEXPORT_SYMBOL+', '-I__initcall+');
+    my $extra_flags = $context->config->{'ctags_flags'} || [];
 
     my $ctags;
     my $pid = open($ctags, '-|');
@@ -134,7 +138,7 @@ sub index_file($$) {
     
     if ($pid == 0) {
 	exec('ctags-exuberant',
-	     @extra_flags,
+	     @$extra_flags,
 	     '--fields=+aifmknsSz', '--sort=no',
 	     '--excmd=number', '-f', '-',
 	     '--language-force='.$lang->ctagslangname,
@@ -181,12 +185,7 @@ sub reference_file($$$) {
     warn("--- referencing ".$file->name." [".$file->revision."]\n");
 
     my $reserved = $lang->reserved();
-
-    my $re = qr(
-		(?m:^|[^a-zA-Z0-9_])		# Non-symbol chars.
-		(_*[a-zA-Z][a-zA-Z0-9_]*)	# The symbol.
-		\b
-		)x;
+    my $re = $lang->identifier_re();
 
     my %refs;
     my $line = 1;
@@ -199,7 +198,7 @@ sub reference_file($$$) {
 	    
 	    while ($frag =~ /\G.*?(?:(\n)|$re)/gc) {
 		$line++ && next if defined $1;
-		my $sym = $2;
+		my $sym = $lang->mangle_sym($2);
 
 		next if $$reserved{$sym};
 		push(@{$refs{$sym} ||= []}, $line);
@@ -236,20 +235,28 @@ sub hash_file($$$) {
 	sysopen($handle, $file->phys_path, 0) || die($!);
 	warn("--- hashing     ".$file->name." [".$file->revision."]\n");
 	my $doc = $hash->new_document($file->name);
+	my $charset = $context->config->{'content_charset'} || [];
+	$charset = [ref($charset) eq 'ARRAY' ? @$charset : $charset];
+	push(@$charset, 'iso-8859-1'); # Fall back
+	my $add_line = $hash->make_add_text($doc);
+
 	while (<$handle>) {
 	    my $pos = 0;
-	    # Latin-1 word characters.
-	    foreach my $term (/([0-9a-zA-Z\300-\326\330-\366\370-\377]+)/g) {
-		$term = lc($term);
-		next if length($term) > 128;
-		$doc->add_posting($term, $.*100 + $pos++);
+	    my $text;
+	    while (@$charset) {
+		$text = eval { decode($$charset[0], $_, Encode::FB_CROAK); };
+		last unless $@;
+		shift(@$charset);
 	    }
+
+	    $add_line->($.*100, $text);
 	}
 
 	reference_file($file, $fileid, $doc);
 	$docid = $hash->add_document($doc, [map {
 	    $index->release_id($tree, $_) } @$rels]);
 	$index->add_hashed_document($fileid, $docid);
+	$index->set_rfile_charset($fileid, $$charset[0]);
 	$handle->close();
 	return 1;
     }

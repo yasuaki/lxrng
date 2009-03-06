@@ -20,6 +20,10 @@ DEPENDENCIES
   - HTML::Entities [libhtml-parser-perl]
   - Template [libtemplate-perl]
 
+* Misc Perl modules
+  - Devel::Size [libdevel-size-perl]
+  - Term::ProgressBar [libterm-progressbar-perl]
+
 * (For gzip content transfer compression: PerlIO::gzip)
 
 * "Exuberant ctags", runnable as ctags-exuberant somewhere in the
