@@ -66,6 +66,7 @@ sub nextfrag {
     my ($self) = @_;
 
     my $btype;
+    my $pos = 0;
     while (1) {
 	if (defined $btype) {
 	    if ($$self{'rest'} =~ s/\A((?s:.*?)$$self{'term'}[$btype])//m) {
@@ -79,8 +80,9 @@ sub nextfrag {
 	    }
 	}
 	else {
-	    if ($$self{'rest'} =~ s/\A((?s).*?)($$self{'open'})//m) {
-		my $pref = $1;
+	    pos($$self{'rest'}) = $pos;
+	    if ($$self{'rest'} =~ s/\G((?s).*?)($$self{'open'})//m) {
+		my $pref = substr($$self{'rest'}, 0, $pos, '').$1;
 		my $frag = $2;
 
 		if ($pref ne '') {
@@ -117,6 +119,7 @@ sub nextfrag {
 	}
 	    
 	untabify($line, $$self{'tabwidth'});
+	$pos = length($$self{'rest'});
 	$$self{'rest'} .= $line;
 
 	unless ($$self{'bofseen'}) {
