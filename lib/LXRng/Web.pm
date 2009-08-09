@@ -125,6 +125,11 @@ sub print_markedup_file {
 	mkpath($cfile, 0, 0777);
 	open($cache, '>', "$cfile/0");
     }
+    else {
+	# Don't chunk file transfers unless cache is enabled.
+	$focus = 1;
+    }
+
     my $handle = $node->handle();
     LXRng::Lang->init($context);
     my $lang   = LXRng::Lang->new($node);

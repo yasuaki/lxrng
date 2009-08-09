@@ -60,7 +60,7 @@ sub contents {
     my (@dirs, @files);
     while (<$git>) {
 	chomp;
-	my ($mode, $type, $ref, $node) = split(" ", $_);
+	my ($mode, $type, $ref, $node) = split(" ", $_, 4);
 	if ($type eq 'tree') {
 	    push(@dirs, LXRng::Repo::Git::Directory->new($$self{'repo'},
 							    $prefix.$node,

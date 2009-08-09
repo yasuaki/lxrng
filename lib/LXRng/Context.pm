@@ -43,6 +43,7 @@ sub new {
 	my $path = $ENV{'REQUEST_URI'};
 	$path =~ s/\?.*//;
 	$path =~ s,/+,/,g;
+	$path =~ s/%([0-9a-f][0-9a-f])/hex($1) >= 32 ? pack("C", hex($1)) : '_'/ge;
 	$$self{'req_base'} = $host.$ENV{'SCRIPT_NAME'};
 
 	foreach my $p ($args{'query'}->param) {
