@@ -148,7 +148,7 @@ sub print_markedup_file {
 		if ($line % FRAGMENT_SIZE == 0) {
 		    print("<a class=\"line\"></a>\n" x FRAGMENT_SIZE)
 			unless $focus;
-		    if (defined($fline)) {
+		    if (defined($fline) and $cache) {
 			$focus = ($line <= ($fline + 100)
 				  and $line > ($fline - FRAGMENT_SIZE));
 		    }
