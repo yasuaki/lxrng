@@ -60,6 +60,10 @@ my $usage   = $context->config->{'usage'};
 my $hash    = $context->config->{'search'};
 my $rep     = $context->config->{'repository'};
 my $progress;
+my $progress_ident;
+my $progress_count;
+my $progress_next;
+my $progress_target;
 
 $SIG{'__WARN__'} = sub { $progress ? $progress->message(shift) : warn(@_) };
 
@@ -73,6 +77,50 @@ sub memory_status {
 	warn '$$$ index       '.
 	    sprintf("%-17s %10d\n", $k, total_size($$index{$k}));
     }
+}
+
+sub progress_init {
+    my ($ident, $total) = @_;
+
+    if (-t STDOUT) {
+	$progress = Term::ProgressBar->new({name => $ident,
+					    count => $total,
+					    ETA => 'linear'});
+	$progress->max_update_rate(0.25);
+    }
+    else {
+	$progress_ident  = $ident;
+	$progress_target = $total;
+	$progress_next   = int($progress_target/10);
+	$progress_count  = 0;
+    }
+}
+
+sub progress_update {
+    my ($count) = @_;
+
+    return $progress->update($count) if $progress;
+
+    if (defined($count)) {
+	$progress_count = $count;
+    }
+    else {
+	$progress_count++;
+    }
+    if ($progress_count > $progress_next or
+	$progress_count >= $progress_target)
+    {
+	print("$progress_ident: $progress_count/$progress_target done...\n");
+	$progress_next = $progress_count + int($progress_target/10);
+    }
+}
+
+sub progress_target {
+    my ($target) = @_;
+
+    return $progress->target($target) if $progress;
+
+    $progress_target = $target;
 }
 
 sub make_add_ident($) {
@@ -125,11 +173,14 @@ sub index_file($$) {
 
     return 0 unless $index->to_index($fileid);
     return 1 unless $lang->doindex();
-    return 1 unless $lang->ctagslangname();
+
+    warn("--- indexing    ".$file->name." [".$file->revision."]\n");
 
     my $add_ident = make_add_ident($fileid);
-   
-    warn("--- indexing    ".$file->name." [".$file->revision."]\n");
+    return $lang->index_file($context, $file, $add_ident)
+	if $lang->can('index_file');
+    return 1 unless $lang->ctagslangname();
+
     my $extra_flags = $context->config->{'ctags_flags'} || [];
 
     my $ctags;
@@ -153,6 +204,7 @@ sub index_file($$) {
     while (<$ctags>) {
 	chomp;
 	my ($symbol, $file, $excmd, @info) = split(/\t/);
+	$symbol = $lang->mangle_sym($symbol);
 	my %info = map { split(/:/, $_, 2) } @info;
 	    
 	$add_ident->($symbol, \%info);
@@ -171,9 +223,8 @@ sub index_file($$) {
 sub reference_file($$$) {
     my ($file, $fileid, $doc) = @_;
 
-    my $lang = LXRng::Lang->new($file);
-
     return 0 unless $index->to_reference($fileid);
+    my $lang = LXRng::Lang->new($file);
     return 1 unless $lang->doindex();
 
     my $handle;
@@ -256,7 +307,7 @@ sub hash_file($$$) {
 	$docid = $hash->add_document($doc, [map {
 	    $index->release_id($tree, $_) } @$rels]);
 	$index->add_hashed_document($fileid, $docid);
-	$index->set_rfile_charset($fileid, $$charset[0]);
+	$index->set_rfile_charset($fileid, $$charset[0] || 'ascii');
 	$handle->close();
 	return 1;
     }
@@ -299,10 +350,7 @@ sub index_pending() {
     my $count = 0;
 
     print("\n");
-    $progress = Term::ProgressBar->new({name => 'Indexing',
-					count => $total,
-					ETA => 'linear'});
-    $progress->max_update_rate(0.25);
+    progress_init('Indexing', $total);
     warn("--- indexing/updating $total files...\n");
 
     foreach my $p (@$pending) {
@@ -319,7 +367,7 @@ sub index_pending() {
 		index_file($node, $fileid))
 	    {
 		$count++;
-		$progress->update($count);
+		progress_update($count);
 	    }
 	    else {
 		$total--;
@@ -327,11 +375,11 @@ sub index_pending() {
 		if ($skip % 100 == 0) {
 		    warn("--- skipped/refreshed $skip files...\n");
 		}
-		$progress->target($total);
+		progress_target($total);
 	    }
 	} $index;
       }
-    $progress->update($total);
+    progress_update($total);
 
     my $done = $index->update_indexed_releases($tree);
 
@@ -342,32 +390,29 @@ sub index_pending() {
 
 
 
-$progress = Term::ProgressBar->new({name => 'Recording',
-				    count => 1,
-				    ETA => 'linear'});
-$progress->max_update_rate(0.25);
+progress_init('Recording', 1);
 
 if (@versions) {
-    $progress->target(1+@versions);
+    progress_target(1+@versions);
     foreach my $version (@versions) {
 	inventory_release($version);
-	$progress->update();
+	progress_update();
     }
 }
 else {
     @versions = grep { ! $index->_get_release($index->tree_id($tree), $_);
 		   } @{$context->all_releases};
-    $progress->target(1+@versions);
+    progress_target(1+@versions);
     LXRng::Index::transaction {
 	foreach my $version (reverse @versions) {
 	    # TODO: Breaking during the inventory process renders
 	    # version half-recorded.
 	    inventory_release($version);
-	    $progress->update();
+	    progress_update();
 	}
     } $index;
 }
-$progress->update();
+progress_update();
 
 LXRng::Index::transaction {
     index_pending();

@@ -114,5 +114,33 @@ sub resolve_include {
     return ();
 }
 
+sub index_file {
+    my ($self, $context, $file, $add_ident) = @_;
+
+    my $handle = $file->handle();
+    my $parse  = LXRng::Parse::Simple->new($handle, 8,
+					   @{$self->parsespec});
+
+    my $line = 1;
+    while (1) {
+	my ($btype, $frag) = $parse->nextfrag;
+
+	return 1 unless defined $frag;
+
+	$btype ||= 'code';
+	if ($btype eq 'code') {
+	    while ($frag =~ s/\A(.*)^config (\w+)//) {
+		my ($pref, $sym) = ($1, $2);
+		$line += $pref =~ tr/\n/\n/;
+		$add_ident->($self->mangle_sym($sym),
+			     {'kind' => 'd',
+			      'line' => $line});
+	    }
+	}
+	$line += $frag =~ tr/\n/\n/;
+    }
+}
+
+
 1;
 
