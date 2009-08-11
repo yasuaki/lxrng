@@ -535,6 +535,27 @@ sub set_rfile_charset {
     return $sth->execute($charset, $rfile_id);
 }
 
+sub get_file_charset {
+    my ($self, $tree, $path, $rel) = @_;
+
+    my $dbh = $self->dbh;
+    my $pre = $self->prefix;
+    my $rel_id = $self->release_id($tree, $rel);
+    return undef unless $rel_id;
+    my $rfile_id = $self->_get_rfile_by_release($rel_id, $path);
+    return undef unless $rfile_id;
+    
+    my $sth = $$self{'sth'}{'get_file_charset'} ||=
+	$dbh->prepare(qq{select c.name
+	    from ${pre}revisions r, ${pre}charsets c
+	    where r.id = ? and r.body_charset = c.id});
+    my $charset;
+    if ($sth->execute($rfile_id) > 0) {
+	($charset) = $sth->fetchrow_array();
+    }
+    $sth->finish();
+    return $charset;
+}
 
 sub get_rfile_timestamp {
     my ($self, $rfile_id) = @_;

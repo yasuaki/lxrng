@@ -132,6 +132,15 @@ sub print_markedup_file {
 
     my $handle = $node->handle();
     LXRng::Lang->init($context);
+    my $index = $context->config->{'index'};
+    my $charset = $index->get_file_charset($context->tree, $node->name, 
+					   $context->release);
+    $charset ||= 'ascii';
+
+    binmode($handle, ":encoding($charset)");
+    binmode(STDOUT, ":encoding(utf-8)");
+    binmode($cache, ":encoding(utf-8)") if $cache;
+
     my $lang   = LXRng::Lang->new($node);
     my $parse  = LXRng::Parse::Simple->new($handle, 8,
 					   @{$lang->parsespec});
