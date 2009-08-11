@@ -280,7 +280,9 @@ sub reference_file($$$) {
 sub hash_file($$$) {
     my ($file, $fileid, $rels) = @_;
 
-    return 0 if $context->config->{'search_size_limit'} > 0 and
+    return 0 if
+	defined($context->config->{'search_size_limit'}) and
+	$context->config->{'search_size_limit'} > 0 and
 	$file->size > $context->config->{'search_size_limit'};
 
     my $docid;
