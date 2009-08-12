@@ -52,7 +52,7 @@ sub transaction {
 	# Only occasional synchronization if we're inside another
 	# transaction.
 	# TODO: Check fill grade of caches and flush based on that.
-	if ($self->{'writes'}++ % 491 == 0) {
+	if ($self->{'writes'}++ % 3259 == 0) {
 	    $self->flush();
 	    $self->dbh->commit();
 	}
