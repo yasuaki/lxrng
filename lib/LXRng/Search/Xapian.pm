@@ -81,7 +81,7 @@ sub add_document {
     }
     my $doc_id = $self->wrdb->add_document($doc);
     $self->{'writes'}++;
-    $self->flush() if $self->{'writes'} % 499 == 0;
+    $self->flush() if $self->{'writes'} % 3271 == 0;
     return $doc_id;
 }
 
