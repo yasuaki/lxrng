@@ -471,7 +471,8 @@ sub get_symbol_usage {
 
     my %rlines;
     foreach my $r (@$res) {
-	$rlines{$$r[0]} = [$$r[1] =~ /(\d+),?/g];
+	$rlines{$$r[0]} = ref($$r[1]) eq 'ARRAY' 
+	    ? $$r[1] : [$$r[1] =~ /(\d+),?/g];
     }
 
     return \%rlines;
