@@ -112,10 +112,10 @@ sub node {
     $path =~ s,/+$,,;
 
     if ($path eq '') {
-	open(my $tag, '<', $$self{'root'}.'/refs/tags/'.$release)
-	    or return undef;
-	my $ref = <$tag>;
-	close($tag);
+	my $git = $self->_git_cmd('rev-list', '--max-count=1', $release);
+	my $ref = <$git>;
+	return undef unless $git =~ /\S/;
+	close($git);
 	chomp($ref);
 	return LXRng::Repo::Git::Directory->new($self, '', $ref);
     }

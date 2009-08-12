@@ -343,7 +343,7 @@ sub inventory_release($) {
 
     my $iter = $rep->iterator($version);
     LXRng::Index::transaction {
-	my $root = $rep->node('/', $version) or die "bad root";
+	my $root = $rep->node('/', $version) or die "Bad root for release $version";
 
 	my $node;
 	while (defined($node = $iter->next)) {
