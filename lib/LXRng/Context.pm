@@ -54,6 +54,11 @@ sub new {
 	    $$self{'prefs'} = { 
 		map { /^(.*?)(?:=(.*)|)$/; ($1 => $2) } @prefs };
 	}
+	else {
+	    if ($args{'query'}->user_agent() =~ /(Gecko|Opera)\//) {
+		$$self{'prefs'}{'navmethod'} = 'ajax';
+	    }
+	}
 	foreach my $tree (keys %$config) {
 	    my $base = $$config{$tree}{'base_url'};
 	    $base =~ s,^https?://[^/]+,,;
