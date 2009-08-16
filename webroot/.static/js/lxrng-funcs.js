@@ -1,4 +1,4 @@
-// Copyright (C) 2008 Arne Georg Gleditsch <lxr@linux.no>.
+// Copyright (C) 2008, 2009 Arne Georg Gleditsch <lxr@linux.no>.
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ function ajax_nav() {
 
 function ajax_jumpto_line() {
 	location.hash = location.hash.replace(/\#L\d+$/, '') + 
-		this.href.replace(/.*(\#L\d+)$/, '$1');
+		this.href.match(/\#L\d+$/);
 	check_hash_navigation();	
 	return false;
 }
@@ -127,9 +127,16 @@ function check_hash_navigation() {
 		if (location.hash.replace(/\#L\d+$/, '') == 
 		    loaded_hash.replace(/\#L\d+$/, ''))
 		{
-			var l = location.hash.replace(/.*#(L\d+)$/, '$1');
+			var l;
+			if (location.hash.match(/\#(L\d+)/)) {
+				l = RegExp.$1;
+			}
+			else {
+				l = 'L1';
+			}
 			var a = document.getElementById(l);
 			if (l && a) {
+				// Need to patch anchor to include file name.
 				a.name = location.hash.replace(/^\#/, '');
 				document.location.hash = a.name;
 				loaded_hash = location.hash;
@@ -345,7 +352,9 @@ function load_content_finalize(content) {
 function update_version(verlist, base_url, tree, defversion, path) {
 	if (use_ajax_navigation) {
 		var file = location.hash.replace(/^[^\/]*\//, '');
-		var line = file.replace(/.*\#L(\d+)/, '$1');
+		var line;
+		file.match(/\#L(\d+)/);
+		line = RegExp.$1;
 		file = file.replace(/\#L\d*$/, '');
 	
 		load_file(loaded_tree, file, verlist.value, line);
