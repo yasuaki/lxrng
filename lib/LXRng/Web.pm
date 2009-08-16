@@ -48,6 +48,8 @@ eval { require PerlIO::gzip; $has_gzip_io = 1; };
 sub do_compress_response {
     my ($query) = @_;
 
+    # Use mod_deflate when running under mod_perl.
+    return 0 if $INC{'LXRng/ModPerl.pm'};
     my @enc = split(",", $query->http('Accept-Encoding'));
     return $has_gzip_io && grep { $_ eq 'gzip' } @enc;
 }
@@ -371,12 +373,6 @@ sub source {
 
 	return $id;
     }
-
-    # TODO: This is potentially useful, in that it resets the stream
-    # to uncompressed mode.  However, under Perl 5.8.8+PerlIO::gzip
-    # 0.18, this seems to truncate the stream.  Not strictly needed
-    # for CGI, reexamine when adapting to mod_perl.
-    ## binmode(\*STDOUT, ":pop") if $gzip;
 }
 
 
@@ -563,8 +559,6 @@ sub handle_ajax_request {
     elsif ($context->param('fname') eq 'pjx_releases') {
 	print_release_list($context, $template);
     }
-
-    # binmode(\*STDOUT, ":pop") if $gzip;    
 }
 
 
