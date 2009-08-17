@@ -58,8 +58,8 @@ sub reserved {
 sub parsespec {
     return ['atom',	'\\\\.',	undef,
 	    'comment',	'#',		"\$",
-	    'string',	'"',		'"',
-	    'string',	"'",		"'",
+	    'string',	'"(?:[^\\\\]*\\\\.)*[^\\\\]*"', undef,
+	    'string',	"'(?:[^\\\\]*\\\\.)*[^\\\\]*'", undef,
 	    'help',     'help', 	"^(?=[^ \t\n])",
 	    'include',	'^source\s+"',	'"'];
 }
@@ -85,8 +85,8 @@ sub markuphandlers {
 	qr/[^\n\"\']+/ => sub { $markup->format_string(@_) };
 
     $subst{'string'} = new Subst::Complex
-	qr/\n/        => $format_newline,
-	qr/[^\n\"\']+/ => sub { $markup->format_string(@_) };
+	qr/\n/     => $format_newline,
+	qr/[^\n]+/ => sub { $markup->format_string(@_) };
 
     $subst{'include'} = new Subst::Complex
 	qr/\n/ => $format_newline,

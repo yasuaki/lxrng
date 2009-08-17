@@ -95,8 +95,8 @@ sub parsespec {
 	    'atom',	'[.][a-z0-9]+', undef, # Directives
 	    'comment',	'/\*',		'\*/',
 	    'comment',	'//',		"\$",
-	    'string',	'"',		'"',
-	    'string',	"'",		"'",
+	    'string',	'"(?:[^\\\\]*\\\\.)*[^\\\\]*"', undef,
+	    'string',	"'(?:[^\\\\]*\\\\.)*[^\\\\]*'", undef,
 	    'atom',	'#\s*(?:ifn?def|define|else|endif|undef)', undef,
 	    'include',	'#\s*include\s+"',	'"',
 	    'include',	'#\s*include\s+<',	'>',
@@ -115,8 +115,8 @@ sub markuphandlers {
 	qr/[^\n]+/ => sub { $markup->format_comment(@_) };
 	
     $subst{'string'} = new Subst::Complex
-	qr/\n/        => $format_newline,
-	qr/[^\n\"\']+/ => sub { $markup->format_string(@_) };
+	qr/\n/     => $format_newline,
+	qr/[^\n]+/ => sub { $markup->format_string(@_) };
 
     $subst{'include'} = new Subst::Complex
 	qr/\n/ => $format_newline,
