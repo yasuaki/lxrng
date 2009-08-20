@@ -435,7 +435,8 @@ sub search {
 	    $template_args{'code_res'} = {'query' => $find,
 					  'idents' => \@cooked};
 	}
-	if ($type eq 'ident') {
+	if ($type eq 'ident' and $find =~ /(\d+)/) {
+	    $find = $1;
 	    my $usage  = $context->config->{'usage'};
 	    my ($symname, $symid, $ident, $refs) =
 		$index->get_identifier_info($usage, $find, $rel_id);
