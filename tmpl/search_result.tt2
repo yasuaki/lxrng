@@ -8,17 +8,17 @@
 [% END %]
 
 [% IF search_type == "code" or (code_res and code_res.idents.0) %]
-  <div class="query_desc">Code search: [% code_res.query %]</div>
+  <div class="query_desc">Code search: [% code_res.query | html %]</div>
   [% ptype = '' %]
   [% FOREACH ident = code_res.idents %]
     [% IF ptype != ident.1 %]
-      <span class="identtype">[% ident.1 %]</span>
+      <span class="identtype">[% ident.1 | html %]</span>
       [% ptype = ident.1 %]
     [% END %]
     <span class="resultline">
       [% INCLUDE line_reference.tt2, file = ident.2, line = ident.3 %]
       <span class="resultdetails">[<a class="iref"
-          href="+ident=[% ident.0 %][% IF navtarget %]?nav[% navtarget %][% END %]"
+          href="+ident=[% ident.0 | html %][% IF navtarget %]?nav[% navtarget | html %][% END %]"
           onclick="return ajax_lookup_anchor(null, this);">usage...</a>]</span>
     </span>
   [% END %]
@@ -27,19 +27,19 @@
 [% IF ident_res %]
   <div class="query_desc">Identifier:
     <a class="sref"
-        href="+code=[% ident_res.query %][% IF navtarget %]?nav[% navtarget %][% END %]"
+        href="+code=[% ident_res.query | html %][% IF navtarget %]?nav[% navtarget | html %][% END %]"
         onclick="return ajax_lookup_anchor(null, this);">
-      [% ident_res.query %]
+      [% ident_res.query | html %]
     </a>
   </div>
   <span class="identdesc">
-    [% ident_res.ident.1 %]
+    [% ident_res.ident.1 | html %]
     [% IF ident_res.ident.4 %]
-      in [% ident_res.ident.5 %]
+      in [% ident_res.ident.5 | html %]
       <a class="iref"
-          href="+ident=[% ident_res.ident.6 %][% IF navtarget %]?nav[% navtarget %][% END %]"
+          href="+ident=[% ident_res.ident.6 | html %][% IF navtarget %]?nav[% navtarget | html %][% END %]"
           onclick="return ajax_lookup_anchor(null, this);">
-        [% ident_res.ident.4 %]
+        [% ident_res.ident.4 | html %]
       </a>
     [% END %]
     at
@@ -64,24 +64,24 @@
 [% IF file_res %]
   [% FOREACH file = file_res.files %]
     [% IF loop.first %]
-      <div class="query_desc">Filename search: [% file_res.query %]</div>
+      <div class="query_desc">Filename search: [% file_res.query | html %]</div>
     [% END %]
     <span class="resultline">
-      <a href="[% file %]" onclick="return load_file('[% context.tree %]',
-        '[% file %][% context.args_url %]', '[% context.release %]', '');"
-        [% navtarget %]>[% file %]</a>
+      <a href="[% file | html %]" onclick="return load_file('[% context.tree | html %]',
+        '[% file | html %][% context.args_url %]', '[% context.release | html %]', '');"
+        [% navtarget | html %]>[% file | html %]</a>
     </span>
   [% END %]
 [% END %]
 
 [% IF text_res %]
-  <div class="query_desc">Freetext search: [% text_res.query %]
-    ([% text_res.total %] estimated hits)</div>
+  <div class="query_desc">Freetext search: [% text_res.query | html %]
+    ([% text_res.total | html %] estimated hits)</div>
 
   [% FOREACH file = text_res.files %]
     <span class="resultline">
       [% INCLUDE line_reference.tt2, file = file.1, line = file.2 %]
-      <span class="resultdetails">([% file.0 %]%)</span>
+      <span class="resultdetails">([% file.0 | html %]%)</span>
     </span>
   [% END %]
 [% END %]
@@ -90,9 +90,9 @@
 <div class="query_desc">Ambiguous file reference, please choose one:</div>
 <ul>
 [% FOREACH file = ambig_res.files %]
-<li><a href="[% file %]" onclick="return load_file('[% context.tree %]',
-       '[% file %][% context.args_url %]', '[% context.release %]', '');"
-    [% navtarget %]>[% file %]</a>
+<li><a href="[% file | html %]" onclick="return load_file('[% context.tree | html %]',
+       '[% file | html %][% context.args_url %]', '[% context.release | html %]', '');"
+    [% navtarget | html %]>[% file | html %]</a>
 </li>
 [% END %]
 </ul>

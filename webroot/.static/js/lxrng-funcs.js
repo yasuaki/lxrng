@@ -264,14 +264,14 @@ function load_file_finalize(content) {
 	res.innerHTML = 'Done';
 	res.innerHTML = content;
 	var head = document.getElementById('current_path');
-	head.innerHTML = '<a class=\"fref\" href=\".\">' + pending_tree + '</a>';
+	head.innerHTML = '<a class=\"fref\" href=\".\">' + escape(pending_tree) + '</a>';
 	var path_walked = '';
 	var elems = pending_file.split(/\//);
 	for (var i = 0; i < elems.length; i++) {
 		if (elems[i] != '') {
 			head.innerHTML = head.innerHTML + '/' +
-				'<a class=\"fref\" href=\"' + path_walked + elems[i] +
-				'\">' + elems[i] + '</a>';
+				'<a class=\"fref\" href=\"' + escape(path_walked) + escape(elems[i]) +
+				'\">' + escape(elems[i]) + '</a>';
 			path_walked = path_walked + elems[i] + '/';
 		}
 	}
