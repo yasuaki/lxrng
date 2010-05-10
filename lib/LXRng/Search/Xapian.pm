@@ -107,6 +107,16 @@ sub add_release {
     return $changes;
 }
 
+sub indexed_term {
+    my ($term) = @_;
+
+    return 0 if length($term) <= 2;
+    return 0 if length($term) > 128;
+    return 0 if $STOPWORD{$term};
+    
+    return 1;
+}
+
 sub make_add_text {
     my ($index, $doc) = @_;
 
@@ -115,15 +125,12 @@ sub make_add_text {
 
 	foreach my $term ($text =~ /(_*\w[\w_]*)/g) {
 	    $term = lc($term);
-	    next if length($term) <= 2;
-	    next if length($term) > 128;
-	    next if $STOPWORD{$term};
+	    next unless indexed_term($term);
 
 	    $doc->add_posting($term, $pos++);
 	    if ($term =~ /_/) {
 		foreach my $subt ($term =~ /([^_]+)/g) {
-		    next if length($subt) <= 2;
-		    next if $STOPWORD{$subt};
+		    next unless indexed_term($subt);
 		    $doc->add_posting($subt, $pos++);
 		}
 	    }
@@ -155,6 +162,7 @@ sub search {
 	$query =~ s/_/ /g;
 	$query =~ s/\b(?![A-Z][^A-Z]*\b)(\S+)/\L$1\E/g;
     }
+    $query =~ s/\b(\w+)\b/indexed_term($1) ? $1 : ""/ge;
 
     my $query = $qp->parse_query($query);
     $query = Search::Xapian::Query
