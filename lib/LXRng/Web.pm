@@ -219,9 +219,11 @@ sub print_tree_list {
     $base =~ s,[+]trees/?$,,;
     $template->process('tree_list.tt2',
 		       {'context' => $context,
-			'base_url' => $base})
+			'base_url' => $base,
+			'is_ajax' => ($context->prefs and
+				      $context->prefs->{'navmethod'} eq 'ajax')})
 	or die $template->error();
-}    
+}
 
 sub print_release_list {
     my ($context, $template) = @_;
