@@ -58,8 +58,8 @@ sub reserved {
 sub parsespec {
     return ['atom',	'\\\\.',	undef,
 	    'comment',	'#',		"\$",
-	    'string',	'"(?:[^\\\\]*\\\\.)*[^\\\\]*"', undef,
-	    'string',	"'(?:[^\\\\]*\\\\.)*[^\\\\]*'", undef,
+	    'string',	'"(?:[^\\\\"]*\\\\.)*[^\\\\"]*"', undef,
+	    'string',	"'(?:[^\\\\']*\\\\.)*[^\\\\']*'", undef,
 	    'help',     'help', 	"^(?=[^ \t\n])",
 	    'include',	'^source\s+"',	'"'];
 }

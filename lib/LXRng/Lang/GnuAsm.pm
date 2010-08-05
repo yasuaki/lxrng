@@ -95,8 +95,8 @@ sub parsespec {
 	    'atom',	'[.][a-z0-9]+', undef, # Directives
 	    'comment',	'/\*',		'\*/',
 	    'comment',	'//',		"\$",
-	    'string',	'"(?:[^\\\\]*\\\\.)*[^\\\\]*"', undef,
-	    'string',	"'(?:[^\\\\]*\\\\.)*[^\\\\]*'", undef,
+	    'string',	'"(?:[^\\\\"]*\\\\.)*[^\\\\"]*"', undef,
+	    'string',	"'(?:[^\\\\']*\\\\.)*[^\\\\']*'", undef,
 	    'atom',	'#\s*(?:ifn?def|define|else|endif|undef)', undef,
 	    'include',	'#\s*include\s+"',	'"',
 	    'include',	'#\s*include\s+<',	'>',
