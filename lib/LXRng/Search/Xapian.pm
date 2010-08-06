@@ -110,6 +110,7 @@ sub add_release {
 sub indexed_term {
     my ($term) = @_;
 
+    use bytes;
     return 0 if length($term) <= 2;
     return 0 if length($term) > 128;
     return 0 if $STOPWORD{$term};
@@ -161,7 +162,7 @@ sub search {
 	$query =~ s/([\S_]+_[\S_]*)/"\"$1\""/ge;
 	$query =~ s/\b(?![A-Z][^A-Z]*\b)(\S+)/\L$1\E/g;
     }
-    $query =~ s/\b([+]?(\w+))\b/indexed_term($2) ? $1 : ""/ge;
+    $query =~ s/([+]?(\S+))/indexed_term($2) ? "$1" : ""/ge;
 
     my $parsed = $qp->parse_query($query);
     $parsed = Search::Xapian::Query
@@ -180,7 +181,7 @@ sub search {
 	# for both variants simultaneously is more work for Xapian
 	# than doing it in sequence.
 	$query =~ s/_/ /g;
-	$query =~ s/\b([+]?(\w+))\b/indexed_term($2) ? $1 : ""/ge;
+	$query =~ s/([+]?(\S+))/indexed_term($2) ? $1 : ""/ge;
 
 	$parsed = $qp->parse_query($query);
 	$parsed = Search::Xapian::Query
