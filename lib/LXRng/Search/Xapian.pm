@@ -145,6 +145,12 @@ sub flush {
     $self->wrdb->flush();
 }
 
+sub remove_underscores {
+    my ($s) = @_;
+    $s =~ s/_/ /g;
+    return $s;
+}
+
 sub search {
     my ($self, $rel_id, $query) = @_;
 
@@ -158,11 +164,12 @@ sub search {
 	$query =~ s/\b([A-Z]+)\b/\L$1\E/g;
     }
     else {
-	$query =~ s/([\S_]+_[\S_]*)/\"$1\"/g;
-	$query =~ s/_/ /g;
+	$query =~ s/([\S_]+_[\S_]*)/"(\"$1\" || \"".remove_underscores($1)."\")"/ge;
 	$query =~ s/\b(?![A-Z][^A-Z]*\b)(\S+)/\L$1\E/g;
     }
     $query =~ s/\b(\w+)\b/indexed_term($1) ? $1 : ""/ge;
+    $query =~ s/\|\|/ OR /g;
+    $query =~ s/\&\&/ AND /g;
 
     my $query = $qp->parse_query($query);
     $query = Search::Xapian::Query
