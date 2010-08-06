@@ -47,7 +47,11 @@ sub new {
 	$$self{'req_base'} = $host.$ENV{'SCRIPT_NAME'};
 
 	foreach my $p ($args{'query'}->param) {
-	    $$self{'params'}{$p} = [$args{'query'}->param($p)];
+	    my @val = $args{'query'}->param($p);
+	    for (@val) {
+		utf8::upgrade($_);
+	    }
+	    $$self{'params'}{$p} = [@val];
 	}
 	my @prefs = $args{'query'}->cookie('lxr_prefs');
 	if (@prefs) {

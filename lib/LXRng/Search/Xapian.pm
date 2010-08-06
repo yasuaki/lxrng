@@ -110,9 +110,8 @@ sub add_release {
 sub indexed_term {
     my ($term) = @_;
 
-    use bytes;
-    return 0 if length($term) <= 2;
-    return 0 if length($term) > 128;
+    return 0 if bytes::length($term) <= 2;
+    return 0 if bytes::length($term) > 128;
     return 0 if $STOPWORD{$term};
     
     return 1;
