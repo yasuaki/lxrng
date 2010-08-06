@@ -145,12 +145,6 @@ sub flush {
     $self->wrdb->flush();
 }
 
-sub remove_underscores {
-    my ($s) = @_;
-    $s =~ s/_/ /g;
-    return $s;
-}
-
 sub search {
     my ($self, $rel_id, $query) = @_;
 
@@ -164,23 +158,41 @@ sub search {
 	$query =~ s/\b([A-Z]+)\b/\L$1\E/g;
     }
     else {
-	$query =~ s/([\S_]+_[\S_]*)/"(\"$1\" || \"".remove_underscores($1)."\")"/ge;
+	$query =~ s/([\S_]+_[\S_]*)/"\"$1\""/ge;
 	$query =~ s/\b(?![A-Z][^A-Z]*\b)(\S+)/\L$1\E/g;
     }
-    $query =~ s/\b(\w+)\b/indexed_term($1) ? $1 : ""/ge;
-    $query =~ s/\|\|/ OR /g;
-    $query =~ s/\&\&/ AND /g;
+    $query =~ s/\b([+]?(\w+))\b/indexed_term($2) ? $1 : ""/ge;
 
-    my $query = $qp->parse_query($query);
-    $query = Search::Xapian::Query
-	->new(OP_FILTER, $query, 
+    my $parsed = $qp->parse_query($query);
+    $parsed = Search::Xapian::Query
+	->new(OP_FILTER, $parsed, 
 	      Search::Xapian::Query->new('__@@rel_'.$rel_id));
 
-    my $enq = $db->enquire($query);
+    my $enq = $db->enquire($parsed);
 
     my $matches = $enq->get_mset(0, 100);
     my $total = $matches->get_matches_estimated();
     my $size = $matches->size();
+
+    if ($size == 0 and $query =~ /_/) {
+	# Retry with underscores replaced with spaces, to capture
+	# partial matches.  Not particularly elegant, but searching
+	# for both variants simultaneously is more work for Xapian
+	# than doing it in sequence.
+	$query =~ s/_/ /g;
+	$query =~ s/\b([+]?(\w+))\b/indexed_term($2) ? $1 : ""/ge;
+
+	$parsed = $qp->parse_query($query);
+	$parsed = Search::Xapian::Query
+	    ->new(OP_FILTER, $parsed, 
+		  Search::Xapian::Query->new('__@@rel_'.$rel_id));
+
+	$enq = $db->enquire($parsed);
+
+	$matches = $enq->get_mset(0, 100);
+	$total = $matches->get_matches_estimated();
+	$size = $matches->size();
+    }
 
     my @res;
 
