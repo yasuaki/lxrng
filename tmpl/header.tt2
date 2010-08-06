@@ -55,12 +55,20 @@
 	  %]<a href="[% elem.path | html %]">[% elem.node | html %]</a>[%
 	  END %]
 	</span>
-	<img src="../.static/gfx/rolldown.png" alt="History">
+	<!-- <img src="../.static/gfx/rolldown.png" alt="History"> -->
         <span id="lxr_print"
           [% IF is_ajax || node.name.match('/$') %]style="display: none;"[% END %]>
 	  <form action="+print=[% node.name | html %]" method="post" id="print_form">
 	    <button type="submit" class="print">
       	      <img src="../.static/gfx/print.png" alt="Print">
+            </button>
+	  </form>
+        </span>
+        <span id="lxr_save"
+          [% IF is_ajax || node.name.match('/$') %]style="display: none;"[% END %]>
+	  <form action="+save=[% node.name | html %]" method="post" id="save_form">
+	    <button type="submit" class="save">
+      	      <img src="../.static/gfx/save.png" alt="Save">
             </button>
 	  </form>
         </span>

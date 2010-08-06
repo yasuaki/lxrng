@@ -821,6 +821,28 @@ sub generate_pdf {
 }
 
 
+# Generate raw file for download
+
+sub generate_raw {
+    my ($query, $context, $template, $path) = @_;
+
+    my $ver = $context->release;
+    my $rep = $context->config->{'repository'};
+    my $node = $rep->node($path, $ver);
+
+    die "No such file" unless $node;
+
+    my $handle = $node->handle();
+    print($query->header(-type => 'application/octet-stram',
+			 -content_disposition =>
+			 "attachment; filename=$path"));
+    my $buf = '';
+    while (sysread($handle, $buf, 65536) > 0) {
+	print($buf);
+    }
+}
+
+
 sub handle {
     my ($self, $query) = @_;
 
@@ -842,6 +864,9 @@ sub handle {
 	}
 	elsif ($context->path =~ /^[+ ]print=(.*)/) {
 	    generate_pdf($query, $context, $template, $1);
+	}
+	elsif ($context->path =~ /^[+ ]save=(.*)/) {
+	    generate_raw($query, $context, $template, $1);
 	}
 	else {
 	    if ($context->path =~ 

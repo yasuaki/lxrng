@@ -284,15 +284,21 @@ function load_file_finalize(content) {
 	var full_path = full_tree + '/' + pending_file.replace(/^\/?/, '');
 
 	var print = document.getElementById('lxr_print');
+	var save  = document.getElementById('lxr_save');
 	var dirlist = document.getElementById('content_dir');
 	if (dirlist) {
 		print.style.display = 'none';
+		save.style.display = 'none';
 	}
 	else {
 		var pform = document.getElementById('print_form');
 		pform.action = '../' + full_tree + '/+print=' + 
 			pending_file.replace(/^\/?/, '');
 		print.style.display = 'inline';
+		var sform = document.getElementById('save_form');
+		sform.action = '../' + full_tree + '/+save=' + 
+			pending_file.replace(/^\/?/, '');
+		save.style.display = 'inline';
 	}
 
 	if (hash_check) {

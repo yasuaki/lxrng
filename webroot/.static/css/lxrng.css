@@ -213,6 +213,11 @@ button.print {
 	background: #F0F0F0;
 }
 
+button.save {
+	border: 0;
+	background: #F0F0F0;
+}
+
 table.directory td.name {
 	width: 30ex;
 }	
