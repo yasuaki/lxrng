@@ -327,12 +327,14 @@ function load_content() {
 		return false;
 	}
 	var tree = location.hash.split('/', 1);
-	tree = tree[0].split(/[+]/);
+	tree[0].match(/^(.+?)([+](.*)|)$/);
+	tree = RegExp.$1;
+
 	var ver = '';
-	if (tree.length > 1) {
-		ver = tree[1];
+	if (RegExp.$2) {
+		ver = RegExp.$3;
 	}
-	tree = tree[0].replace(/^#/, '');
+	tree = tree.replace(/^#/, '');
 	var file = location.hash.replace(/^[^\/]*\/?/, '');
 	var line = file.split('#L');
 	if (line.length > 1) {

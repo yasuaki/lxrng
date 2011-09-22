@@ -1,8 +1,8 @@
 <select name="v" id="v" 
 onchange="update_version(this, '[% context.base_url %]', '[% context.tree %]', '[% context.default_release %]', '[% context.path %]');">
   [% FOREACH v = context.all_releases %]
-  <option value="[% v %]"
+  <option value="[% v | uri %]"
 	  [% IF v == context.release %]selected="selected"[% END %]>
-  [% v %]</option>
+  [% v | html %]</option>
   [% END %]
 </select>

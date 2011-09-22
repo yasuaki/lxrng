@@ -86,7 +86,7 @@ sub new {
 	$$self{'tree'} = $args{'tree'};
     }
 
-    if ($$self{'tree'} =~ s/[+]([^+]*)$//) {
+    if ($$self{'tree'} =~ s/[+](.+)$//) {
 	$$self{'release'} = $1 if $1 ne '*';
     }
 
