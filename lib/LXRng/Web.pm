@@ -240,7 +240,7 @@ sub source {
 			     'pjx_load_file' => '',
 			     'pjx_load_fragment' => '',
 			     'pjx_releases' => '');
-    $pjx->js_encode_function('encodeURIComponent');
+    $pjx->js_encode_function('encode_lxrng');
 
     if ($context->prefs and $context->prefs->{'navmethod'} eq 'ajax') {
 	print($query->header(-type => 'text/html',

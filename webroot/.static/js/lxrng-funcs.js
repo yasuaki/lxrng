@@ -17,6 +17,14 @@
 // The full GNU General Public License is included in this distribution
 // in the file called COPYING.
 
+function encode_lxrng(str) {
+	return encodeURIComponent(str);
+}
+
+function decode_lxrng(str) {
+	return str;
+}
+
 function popup_search(searchform) {
 	searchform = document.getElementById(searchform);
 	searchform.target = 'popup_' + window.name;
