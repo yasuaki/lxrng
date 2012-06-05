@@ -30,11 +30,11 @@ use vars qw($memcached $has_memcached $nspace @ISA @EXPORT);
 BEGIN {
     eval { require Cache::Memcached;
 	   require Storable;
-	   require Digest::SHA1;
+	   require Digest::SHA;
        };
     if ($@ eq '') {
 	$has_memcached = 1;
-	$nspace = substr(Digest::SHA1::sha1_hex($LXRng::ROOT), 0, 8);
+	$nspace = substr(Digest::SHA::sha1_hex($LXRng::ROOT), 0, 8);
     }
 }
 
@@ -77,7 +77,7 @@ sub LXRng_Cached_cached(&;@) {
 	}
 	$params = Storable::freeze(\@args);
 
-	my $key = Digest::SHA1::sha1_hex(join("\0", $file, $line, $params));
+	my $key = Digest::SHA::sha1_hex(join("\0", $file, $line, $params));
 	my $val = LXRng::Cached::handle->get($key);
 	unless ($val) {
 	    $val = [$func->()];

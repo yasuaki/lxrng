@@ -31,7 +31,7 @@ use Subst::Complex;
 
 use Template;
 use IO::Handle;
-use Digest::SHA1 qw(sha1_hex);
+use Digest::SHA qw(sha1_hex);
 use CGI::Ajax;
 use File::Temp qw(tempdir tempfile);
 use File::Path qw(mkpath);
